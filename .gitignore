@@ -1,0 +1,19 @@
+/// <summary>
+/// Arquivo de configuração para ignorar arquivos temporários e binários no Git.
+/// </summary>
+
+# Pastas de compilação
+bin/
+obj/
+
+# Rider e Visual Studio
+.idea/
+.vs/
+*.user
+
+# Sistema Operacional Mac
+.DS_Store
+
+# Publicação e logs
+publish/
+*.log
