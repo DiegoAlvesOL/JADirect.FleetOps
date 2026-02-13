@@ -10,4 +10,8 @@
       <ProjectReference Include="..\JADirect.Domain\JADirect.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="MySql.Data" Version="9.6.0" />
+    </ItemGroup>
+
 </Project>
