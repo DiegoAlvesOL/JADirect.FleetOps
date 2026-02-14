@@ -1,0 +1,75 @@
+@model IEnumerable<JADirect.Domain.Entities.User>
+
+<style>
+    /* Estilo para o botão principal com hover */
+    .btn-teal {
+        background-color: #008080;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        transition: all 0.3s ease; /* Transição suave */
+    }
+
+    .btn-teal:hover {
+        background-color: #006666; /* Tom mais escuro de Teal */
+        color: white;
+        transform: translateY(-2px); /* Pequeno pulo para cima */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">J&A Direct Team</h2>
+        <a asp-action="Create" class="btn btn-teal px-4">
+            + New Staff Member
+        </a>
+    </div>
+    
+    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+            <tr>
+                <th class="ps-4">Name</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th class="text-end pe-4">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td class="ps-4">@user.FirstName @user.Surname</td>
+                    <td>@user.Email</td>
+                    <td>
+                        <span class="badge rounded-pill @(user.Role == JADirect.Domain.Enums.UserRoles.Manager ? "bg-dark" : "")"
+                              style="@(user.Role != JADirect.Domain.Enums.UserRoles.Manager ? "background-color: #008080;" : "")">
+                            @user.Role
+                        </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button onclick="deactivateUser(@user.Id)" class="btn btn-sm btn-outline-danger border-0">
+                            Deactivate
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        function deactivateUser(id){
+            if (confirm("Are you sure you want to deactivate this user?")){
+                // Conexão: O JS chama o Deactivate no Controller
+                $.post('/Users/Deactivate/' + id, function(){
+                    location.reload();
+                });
+            }
+        }
+    </script>
+}

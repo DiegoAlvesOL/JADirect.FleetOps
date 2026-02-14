@@ -114,4 +114,51 @@ public class UserRepository
             CreatedAt = Convert.ToDateTime(reader["created_at"])
         };
     }
+
+    /// <summary>
+    /// Lista todos os usuário gravados no banco.
+    /// </summary>
+    /// <returns>Lista completa de usuários.</returns>
+    public List<User> GetAll()
+    {
+        var users = new List<User>();
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "SELECT * FROM users ORDER BY first_name ASC";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                connection.Open();
+                using (var reader = (System.Data.Common.DbDataReader)command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        users.Add(MapUserFromReader(reader));
+                    }
+                }
+            }
+        }
+        return users;
+    }
+
+    /// <summary>
+    /// Atualiza o status de um usuário para 'Canceled'.
+    /// </summary>
+    /// <param name="userId">ID do usuário a ser desativado.</param>
+    public void Deactivate(int userId)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "UPDATE users SET status_id = @StatusId WHERE id = @Id";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                AddParameter(command, "@StatusId", (int)UserStatus.Canceled);
+                AddParameter(command, "@Id", userId);
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+        
+    }
 }
