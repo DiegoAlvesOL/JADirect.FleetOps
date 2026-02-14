@@ -1,19 +1,25 @@
-/// <summary>
-/// Arquivo de configuração para ignorar arquivos temporários e binários no Git.
-/// </summary>
-
-# Pastas de compilação
+# --- C# / .NET ---
 bin/
 obj/
+publish/
+*.log
 
-# Rider e Visual Studio
+# --- Banco de Dados ---
+# Ignora arquivos de banco local (SQLite ou dumps)
+*.db
+*.sqlite
+*.sql.gz
+
+# --- Configurações Sensíveis ---
+# Se o projeto for público, descomente a linha abaixo:
+# appsettings.json
+
+# --- IDEs / Ferramentas ---
 .idea/
 .vs/
 *.user
+*.suo
 
-# Sistema Operacional Mac
+# --- Sistema Operacional ---
 .DS_Store
-
-# Publicação e logs
-publish/
-*.log
+Thumbs.db
