@@ -1,47 +1,72 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using JADirect.Web.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-                       throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// ---------------------------------------------------------
+// 1. CONFIGURAÇÃO DE SERVIÇOS (CONTAINER)
+// ---------------------------------------------------------
+
+// Suporte para MVC (Controllers e Views)
 builder.Services.AddControllersWithViews();
+
+// Configuração de autenticação via Cookies
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(8);
+    });
+
+
+// ---------------------------------------------------------
+// 2. INJEÇÃO DE DEPENDÊNCIA
+// ---------------------------------------------------------
+
+// Registra a Factory de Conexão com a String do appsettings.json
+// Adicione as dependências (Injeção de Dependência)
+builder.Services.AddScoped<JADirect.Data.Infrastructure.DbConnectionFactory>(sp =>
+    new JADirect.Data.Infrastructure.DbConnectionFactory(builder.Configuration.GetConnectionString("DefaultConnection")
+                                                         ?? throw new Exception("Connection String not found.")));
+
+
+// Registra os Repositórios (Camada de Dados)
+builder.Services.AddScoped<JADirect.Data.Repositories.UserRepository>();
+
+// Registra os Serviços (Camada de Aplicação)
+builder.Services.AddScoped<JADirect.Application.Services.AuthService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseMigrationsEndPoint();
-}
-else
+
+// ---------------------------------------------------------
+// 3. MIDDLEWARES (PIPELINE DE EXECUÇÃO)
+// ---------------------------------------------------------
+
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 
+
+//Essencial: Primeiro Authentication e depois Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+// Configuração de rota padrão.
 
 app.MapControllerRoute(
-        name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
-app.MapRazorPages()
-    .WithStaticAssets();
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
