@@ -8,6 +8,7 @@ namespace JADirect.Web.Controllers;
 
 /// <summary>
 /// Controlador responsável por gerenciar as telas de usuários.
+/// Acesso restrito a usuários com perfil 'Manager'
 /// </summary>
 [Authorize(Roles = "Manager")]
 public class UsersController : Controller

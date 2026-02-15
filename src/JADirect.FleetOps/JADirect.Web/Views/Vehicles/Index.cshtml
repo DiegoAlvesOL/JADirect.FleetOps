@@ -1,0 +1,82 @@
+@model IEnumerable<JADirect.Domain.Entities.Vehicle>
+@using JADirect.Domain.Enums
+
+<style>
+    .btn-teal {
+        background-color: #008080;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    .btn-teal:hover {
+        background-color: #006666;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .bg-teal { background-color: #008080; color: white; }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Fleet Inventory</h2>
+        <a asp-action="Create" class="btn btn-teal px-4">
+            + New Vehicle
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Registration</th>
+                    <th>Manufacturer</th>
+                    <th>Model</th>
+                    <th>Type</th>
+                    <th>Current KM</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var vehicle in Model)
+            {
+                <tr>
+                    <td class="ps-4 fw-bold text-teal">@vehicle.RegistrationNo</td>
+                    <td>@vehicle.Manufacturer</td>
+                    <td>@vehicle.Model</td>
+                    <td>@vehicle.VehicleType</td>
+                    <td>@vehicle.CurrentKm.ToString("N0") km</td>
+                    <td>
+                        @{
+                            // Mapeamento de cores baseado no seu novo Enum
+                            var badgeStyle = vehicle.Status switch {
+                                VehicleStatus.Active => "bg-success",           // Verde
+                                VehicleStatus.Maintenance => "bg-warning text-dark", // Amarelo
+                                VehicleStatus.Retired => "bg-secondary",        // Cinza (saiu da frota)
+                                VehicleStatus.Blocked => "bg-danger fw-bold",   // Vermelho (CRÍTICO)
+                                _ => "bg-light text-dark"
+                            };
+                        }
+                
+                        @if (vehicle.Status == VehicleStatus.Blocked)
+                        {
+                            <span class="badge rounded-pill @badgeStyle" title="Safety check failed!">
+                                <i class="bi bi-exclamation-octagon-fill"></i> @vehicle.Status
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge rounded-pill @badgeStyle">@vehicle.Status</span>
+                        }
+                    </td>
+                    <td class="text-end pe-4">
+                        <a class="btn btn-sm btn-outline-secondary border-0">Edit</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

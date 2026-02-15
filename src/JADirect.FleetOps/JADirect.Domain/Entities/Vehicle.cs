@@ -13,7 +13,7 @@ public class Vehicle
     public string Manufacturer { get; set; }
     public string Model { get; set; }
     public VehicleType VehicleType { get; set; }
-    public int CurrentKM { get; set; }
+    public int CurrentKm { get; set; }
     public VehicleStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 }

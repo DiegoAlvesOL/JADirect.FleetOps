@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using JADirect.Data.Infrastructure;
 using JADirect.Domain.Entities;
 using JADirect.Domain.Enums;
@@ -31,13 +32,14 @@ public class UserRepository
                 @"INSERT INTO users(first_name, surname, email, phone_number, password_hash, role_id, status_id, created_at) 
                 VALUES(@FirstName, @Surname, @Email, @PhoneNumber, @PasswordHash, @RoleId, @StatusId, @CreatedAt)";
 
+            var textInfo = CultureInfo.CurrentCulture.TextInfo;
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = sql;
-                AddParameter(command, "@FirstName", user.FirstName);
-                AddParameter(command, "@Surname", user.Surname);
-                AddParameter(command, "@Email", user.Email);
-                AddParameter(command, "@PhoneNumber", user.PhoneNumber);
+                AddParameter(command, "@FirstName", textInfo.ToTitleCase(user.FirstName.Trim().ToLower()));
+                AddParameter(command, "@Surname", textInfo.ToTitleCase(user.Surname.Trim().ToLower()));
+                AddParameter(command, "@Email", user.Email.Trim().ToLower());
+                AddParameter(command, "@PhoneNumber", user.PhoneNumber.Trim());
                 AddParameter(command, "@PasswordHash", user.PasswordHash);
                 AddParameter(command, "@RoleId", (int)user.Role);
                 AddParameter(command, "@StatusId", (int)user.Status);

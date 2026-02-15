@@ -37,9 +37,12 @@ builder.Services.AddScoped<JADirect.Data.Infrastructure.DbConnectionFactory>(sp 
 
 // Registra os Repositórios (Camada de Dados)
 builder.Services.AddScoped<JADirect.Data.Repositories.UserRepository>();
+builder.Services.AddScoped<JADirect.Data.Repositories.VehicleRepository>();
 
 // Registra os Serviços (Camada de Aplicação)
 builder.Services.AddScoped<JADirect.Application.Services.AuthService>();
+
+
 
 var app = builder.Build();
 
