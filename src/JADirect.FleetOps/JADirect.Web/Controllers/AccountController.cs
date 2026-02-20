@@ -51,10 +51,10 @@ public class AccountController : Controller
 
         if (user.Role == UserRoles.Manager)
         {
-            return RedirectToAction("Index", "Dashboard");
+            return RedirectToAction("Index", "Home");
         }
 
-        return RedirectToAction("SelectVehicle", "Fleet");
+        return RedirectToAction("SelectVehicle", "Driver");
     }
 
     public async Task<IActionResult> Logout()

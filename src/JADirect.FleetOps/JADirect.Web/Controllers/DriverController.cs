@@ -34,7 +34,7 @@ public class DriverController : Controller
     /// <param name="regNo">A placa do veículo para exibição rápida.</param>
     /// <returns></returns>
     [HttpPost]
-    public IActionResult ConfimVehicle(int vehicleId, string registrationNo)
+    public IActionResult ConfirmVehicle(int vehicleId, string registrationNo)
     {
         if (vehicleId <= 0 || string.IsNullOrEmpty(registrationNo))
         {

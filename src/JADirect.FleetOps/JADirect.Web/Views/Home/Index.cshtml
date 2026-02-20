@@ -1,8 +1,84 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model JADirect.Domain.Models.VehicleStatusResult
+
+@{
+    ViewData["Title"] = "Home - Driver Panel";
+    
+    // Mapeamento de cores CSS baseado no StatusColor do Domain
+    string borderClass = Model.StatusColor == "Green" ? "border-success" : 
+                        Model.StatusColor == "Yellow" ? "border-warning" : "border-danger";
+    
+    string textClass = Model.StatusColor == "Green" ? "text-success" : 
+                      Model.StatusColor == "Yellow" ? "text-warning" : "text-danger";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    .home-card {
+        border-radius: 20px; /* Critério de Aceite */
+        border-width: 3px;
+    }
+    .btn-fat-finger {
+        min-height: 70px; /* Critério de Aceite: Mínimo 60px */
+        font-size: 1.2rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        margin-bottom: 15px;
+    }
+    .status-icon {
+        font-size: 3rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="card shadow-sm mb-4 home-card @borderClass">
+        <div class="card-body text-center p-4">
+            <h5 class="text-muted text-uppercase mb-1">Operating Vehicle</h5>
+            <h1 class="display-4 fw-bold mb-3">@ViewBag.RegistrationNo</h1>
+            
+            <div class="d-flex justify-content-center align-items-center">
+                <i class="bi bi-shield-check status-icon @textClass"></i>
+                <div class="ms-3 text-start">
+                    <h4 class="mb-0 @textClass">@Model.StatusColor Status</h4>
+                    <p class="mb-0 text-secondary">@Model.Message</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            
+            <a asp-controller="Walkaround" asp-action="Create" 
+               class="btn @(Model.IsActionRequired ? "btn-danger" : "btn-outline-secondary") btn-fat-finger w-100 shadow-sm">
+                <i class="bi bi-clipboard-check-fill me-2 fs-3"></i> 
+                @(Model.IsActionRequired ? "START REQUIRED WALKAROUND" : "Retake Safety Check")
+            </a>
+
+            @if (Model.IsActionRequired)
+            {
+                <button class="btn btn-secondary btn-fat-finger w-100 opacity-50 shadow-sm" disabled>
+                    <i class="bi bi-lock-fill me-2 fs-3"></i> Daily Log (Walkaround Required)
+                </button>
+                <div class="alert alert-danger text-center mt-2 border-0">
+                    <small><i class="bi bi-exclamation-triangle"></i> Complete the safety check to unlock daily logs.</small>
+                </div>
+            }
+            else
+            {
+                <a asp-controller="DailyLog" asp-action="Create" 
+                   class="btn btn-success btn-fat-finger w-100 shadow-sm" 
+                   style="background-color: #008080; border: none;">
+                    <i class="bi bi-truck me-2 fs-3"></i> START DAILY LOG
+                </a>
+            }
+            
+            <div class="mt-4 text-center">
+                <a asp-controller="Driver" asp-action="SelectVehicle" class="text-decoration-none text-muted">
+                    <i class="bi bi-arrow-left-right"></i> Change Vehicle
+                </a>
+            </div>
+        </div>
+    </div>
 </div>

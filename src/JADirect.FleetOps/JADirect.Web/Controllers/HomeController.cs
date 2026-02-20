@@ -1,28 +1,59 @@
 using System.Diagnostics;
+using JADirect.Data.Services;
+using JADirect.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 using JADirect.Web.Models;
 
 namespace JADirect.Web.Controllers;
 
+/// <summary>
+/// Controller principal que serve como o Funil Operacional do Motorista.
+/// Gerencia o estado da sessão e a conformidade do veículo selecionado.
+/// </summary>
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly FleetService _fleetService;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(FleetService fleetService)
     {
-        _logger = logger;
+        _fleetService = fleetService;
     }
 
+    /// <summary>
+    /// Renderiza a Home baseada no estado do veículo selecionado na sessão.
+    /// </summary>
+    /// <returns></returns>
     public IActionResult Index()
     {
-        return View();
+        //1. Primeiro verifica se o login é de manager ou driver, para o correto redirecionamento.
+        if (User.IsInRole("Manager"))
+        {
+            return View("ManagerDashboard");
+        }
+        
+        //2. Verificação de Sessão (Redireciona se não houver veículo selecionado)
+        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehiclesId");
+        string registrationNo = HttpContext.Session.GetString("SelectedVehicleRegistrationNo");
+
+        if (!vehicleId.HasValue)
+        {
+            return RedirectToAction("SelectVehicle", "Driver");
+        }
+        
+        // 3. Consumo do serviço de inteligência para o Semáforo Visual
+        VehicleStatusResult status = _fleetService.GetWalkaroundStatus(vehicleId.Value);
+        
+        
+        // Passamos a placa para a View via ViewBag
+        ViewBag.RegistrationNo = registrationNo;
+
+        return View(status);
     }
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
+    /// <summary>
+    /// Action padrão de erro do template ASP.NET
+    /// </summary>
+    /// <returns></returns>
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
