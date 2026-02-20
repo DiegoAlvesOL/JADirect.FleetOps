@@ -131,4 +131,32 @@ public class VehicleRepository
             CreatedAt = Convert.ToDateTime(reader["created_at"])
         };
     }
+
+    /// <summary>
+    /// Lista apenas veículos operacionais (Active) para seleção do motorista.
+    /// </summary>
+    /// <returns></returns>
+    public List<Vehicle> GetOperationalVehicles()
+    {
+        var list = new List<Vehicle>();
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "SELECT * FROM vehicles WHERE status_id = 1 ORDER BY registration_no ASC";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                connection.Open();
+                using (var reader = (DbDataReader)command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(MapVehicleFromReader(reader));
+                    }
+                }
+
+            }
+
+        }
+        return list;
+    }
 }

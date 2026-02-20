@@ -1,0 +1,65 @@
+@model IEnumerable<JADirect.Domain.Entities.Vehicle>
+@using JADirect.Domain.Enums
+
+<style>
+    .vehicle-selection-card {
+        border: 2px solid #dee2e6;
+        border-radius: 15px;
+        transition: 0.3s;
+    }
+    .vehicle-selection-card:hover {
+        border-color: #008080;
+        background-color: #f8ffff;
+    }
+    .text-teal { color: #008080; }
+    .btn-confirm-teal {
+        background-color: #008080;
+        color: white;
+        border-radius: 10px;
+        font-weight: bold;
+        padding: 12px;
+        border: none;
+    }
+    .btn-confirm-teal:hover {
+        background-color: #006666;
+        color: white;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-teal">Daily Vehicle Selection</h2>
+        <p class="text-muted">Select the vehicle you are operating today to start.</p>
+    </div>
+
+    <div class="row">
+        @foreach (var vehicle in Model)
+        {
+            <div class="col-12 col-md-6 mb-3">
+                <div class="card vehicle-selection-card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h3 class="fw-bold mb-0">@vehicle.RegistrationNo</h3>
+                                <span class="text-secondary small">@vehicle.Manufacturer @vehicle.Model</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark border">@vehicle.CurrentKm KM</span>
+                            </div>
+                        </div>
+
+                        <form asp-action="ConfirmVehicle" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="vehicleId" value="@vehicle.Id" />
+                            <input type="hidden" name="registrationNo" value="@vehicle.RegistrationNo" />
+                            
+                            <button type="submit" class="btn btn-confirm-teal w-100">
+                                <i class="bi bi-play-fill"></i> Start Journey with this Vehicle
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

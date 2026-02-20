@@ -60,3 +60,10 @@ CREATE TABLE daily_logs(
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
 );
+
+-- Inclusão do campo na tabela vehicles para receber a data d
+ALTER TABLE vehicles
+    ADD COLUMN last_walkaround_at DATETIME NULL AFTER status_id;
+
+-- Indice para melhorar a performance do relatório 
+CREATE INDEX idx_vehicle_last_check ON vehicles(last_walkaround_at);
