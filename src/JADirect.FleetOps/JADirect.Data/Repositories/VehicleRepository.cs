@@ -28,9 +28,8 @@ public class VehicleRepository
     {
         using (var connection = _connectionFactory.CreateConnection())
         {
-            const string sql =
-                @"INSERT INTO vehicles(registration_no, manufacturer, model, vehicle_type_id, current_km, status_id, created_at)
-                                VALUES(@RegistrationNo, @Manufacturer, @Model, @VehicleTypeId, @CurrentKm, @StatusId, @CreatedAt)";
+            const string sql = @"INSERT INTO vehicles(registration_no, manufacturer, model, vehicle_type_id, current_km, status_id, created_at, last_walkaround_at)
+                            VALUES(@RegistrationNo, @Manufacturer, @Model, @VehicleTypeId, @CurrentKm, @StatusId, @CreatedAt, @LastWalkaroundAt)";
             
             var textInfo = CultureInfo.CurrentCulture.TextInfo;
             using (var command = connection.CreateCommand())
@@ -43,6 +42,7 @@ public class VehicleRepository
                 AddParameter(command, "@CurrentKm", vehicle.CurrentKm);
                 AddParameter(command, "@StatusId", (int)vehicle.Status);
                 AddParameter(command, "@CreatedAt", vehicle.CreatedAt);
+                AddParameter(command, "@LastWalkaroundAt", vehicle.LastWalkaroundAt);
                 
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -119,7 +119,7 @@ public class VehicleRepository
     /// <returns></returns>
     private Vehicle MapVehicleFromReader(DbDataReader reader)
     {
-        return new Vehicle()
+        var vehicle = new Vehicle()
         {
             Id = Convert.ToInt32(reader["id"]),
             RegistrationNo = reader["registration_no"].ToString(),
@@ -130,6 +130,13 @@ public class VehicleRepository
             Status = (VehicleStatus)Convert.ToInt32(reader["status_id"]),
             CreatedAt = Convert.ToDateTime(reader["created_at"])
         };
+
+        if (reader["last_walkaround_at"] != DBNull.Value)
+        {
+            vehicle.LastWalkaroundAt = Convert.ToDateTime(reader["last_walkaround_at"]);
+        }
+
+        return vehicle;
     }
 
     /// <summary>

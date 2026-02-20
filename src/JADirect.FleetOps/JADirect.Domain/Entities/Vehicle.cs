@@ -16,4 +16,5 @@ public class Vehicle
     public int CurrentKm { get; set; }
     public VehicleStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? LastWalkaroundAt { get; set; }
 }

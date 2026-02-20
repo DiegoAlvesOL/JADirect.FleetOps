@@ -19,8 +19,7 @@ public class FleetService
     {
         _connectionFactory = connectionFactory;
     }
-
-
+    
     /// <summary>
     /// Consulta o banco de dados e processa o estado de conformidade de um veículo específico.
     /// Utiliza o campo last_walkaround_at para otimização de performance.
@@ -33,7 +32,7 @@ public class FleetService
 
         using (var connection = _connectionFactory.CreateConnection())
         {
-            const string sql = "SELECT last_walkaround_at FROM vehicles WHERE id = @@VehicleId";
+            const string sql = "SELECT last_walkaround_at FROM vehicles WHERE id = @VehicleId";
 
             using (var command = connection.CreateCommand())
             {

@@ -1,3 +1,4 @@
+using JADirect.Data.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using JADirect.Web.Data;
@@ -38,6 +39,7 @@ builder.Services.AddScoped<JADirect.Data.Infrastructure.DbConnectionFactory>(sp 
 // Registra os Repositórios (Camada de Dados)
 builder.Services.AddScoped<JADirect.Data.Repositories.UserRepository>();
 builder.Services.AddScoped<JADirect.Data.Repositories.VehicleRepository>();
+builder.Services.AddScoped<FleetService>();
 
 // Registra os Serviços (Camada de Aplicação)
 builder.Services.AddScoped<JADirect.Application.Services.AuthService>();
