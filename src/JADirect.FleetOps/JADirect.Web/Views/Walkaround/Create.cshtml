@@ -1,0 +1,150 @@
+@* ARQUIVO: Create.cshtml (Main View)
+    OBJETIVO: Interface principal do módulo de Walkaround.
+    RELAÇÃO: Este arquivo é o "HOST" (Pai). Ele define a estrutura global da página, 
+    o formulário, a geolocalização e o botão de envio.
+    MODULARIDADE: Ele herda a estrutura de repetição do arquivo '_CheckItem.cshtml', 
+    injetando dados específicos (ID e Label) em cada instância para manter o código DRY (Don't Repeat Yourself).
+*@
+
+@model dynamic
+
+<style>
+    .checklist-section { 
+        border: 2px solid #e9ecef; 
+        border-radius: 15px; 
+        padding: 20px; 
+        margin-bottom: 25px; 
+        background-color: #fff; 
+    }
+    .checklist-section legend { 
+        width: auto; 
+        padding: 0 15px; 
+        font-weight: bold; 
+        color: #008080; 
+        float: none; 
+        font-size: 1.1rem; 
+    }
+    
+    .option-card { 
+        border: 2px solid #dee2e6; 
+        border-radius: 12px; 
+        padding: 12px; 
+        cursor: pointer; 
+        transition: all 0.2s ease; 
+        width: 48%; 
+        text-align: center; 
+        font-weight: bold; 
+    }
+
+    .option-card i {
+        color: #adb5bd;
+    }
+
+    .btn-check:checked + .option-card i {
+        color: white;
+    }
+    
+    /* Efeito de Hover e Seleção */
+    .btn-check:checked + .option-card { 
+        background-color: #008080; 
+        color: white; 
+        border-color: #008080; 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 8px rgba(0,128,128,0.2); 
+    }
+    .btn-check:checked + .option-card.fail { 
+        background-color: #dc3545; 
+        border-color: #dc3545; 
+        box-shadow: 0 4px 8px rgba(220,53,69,0.2); 
+    }
+    
+    /* Botão de Submit com efeito de clique */
+    .btn-submit { 
+        min-height: 70px; 
+        border-radius: 15px; 
+        font-size: 1.3rem; 
+        border: none; 
+        background-color: #008080; 
+        color: white; 
+        transition: all 0.2s;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-submit:hover { 
+        background-color: #006666; 
+        transform: translateY(-1px); 
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2); 
+    }
+    
+    .btn-submit:active { 
+        transform: translateY(2px); 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    }
+    
+</style>
+
+<div class="container mt-4 mb-5">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-teal"><i class="bi bi-clipboard-check"></i> Vehicle Inspection</h2>
+        <p class="text-muted px-3">
+            Walk around check items to be checked by the driver before and while driving. 
+            Select <span class="text-success fw-bold">Pass</span> (satisfactory) or <span class="text-danger fw-bold">Fail</span> (defect noted).
+        </p>
+    </div>
+
+    <form asp-action="Create" method="post" id="walkaroundForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Latitude" id="lat" />
+        <input type="hidden" name="Longitude" id="lon" />
+
+        <fieldset class="checklist-section shadow-sm">
+            <legend>1. Exterior & Structure</legend>
+            
+            @await Html.PartialAsync("_CheckItem", new { ID = "tyres", Label = "Tyres condition, inflation & fixings" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "lights", Label = "Lights, indicators & reflectors" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "tax_discs", Label = "CVRT tax & insurance discs" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "bumpers", Label = "Bumpers & sideguards" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "plates", Label = "Number plates & marker plates" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "mirrors", Label = "Mirrors & Windows" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "fuel_cap", Label = "Fuel cap secure" })
+        </fieldset>
+
+        <fieldset class="checklist-section shadow-sm">
+            <legend>2. Engine & Fluids</legend>
+            @await Html.PartialAsync("_CheckItem", new { ID = "fluids", Label = "Oil, water, washer & fuel levels" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "leaks", Label = "Fuel / Oil leaks" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "exhaust", Label = "Exhaust & Smoke emission" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "battery", Label = "Wiring & battery" })
+        </fieldset>
+
+        <fieldset class="checklist-section shadow-sm">
+            <legend>3. Cab & Controls</legend>
+            @await Html.PartialAsync("_CheckItem", new { ID = "wipers", Label = "Windscreen wipers & washers" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "horn", Label = "Horn" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "seats", Label = "Drivers seat & seat belts" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "steering", Label = "Steering controls & operation" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "brakes", Label = "Brake controls & operation" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "abs_warning", Label = "ABS/EBS & instruments/gauges" })
+            @await Html.PartialAsync("_CheckItem", new { ID = "load", Label = "Load security & distribution" })
+        </fieldset>
+
+        <div class="px-2">
+            <button type="submit" class="btn btn-submit w-100 fw-bold shadow">
+                SUBMIT INSPECTION
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    document.getElementById('lat').value = position.coords.latitude;
+                    document.getElementById('lon').value = position.coords.longitude;
+                });
+            }
+        });
+    </script>
+}

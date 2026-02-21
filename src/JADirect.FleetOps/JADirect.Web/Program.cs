@@ -20,7 +20,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(12);
+    // Aqui eu estipulo a jornada de trabalho com um veículo. apos 12h ele vai automaticamente para tela de seleção de veículo.
+    options.IdleTimeout = TimeSpan.FromHours(12);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
