@@ -1,4 +1,5 @@
 using System.Text.Json;
+using JADirect.Data.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JADirect.Web.Controllers;
@@ -8,43 +9,64 @@ namespace JADirect.Web.Controllers;
 /// </summary>
 public class WalkaroundController : Controller
 {
+    private readonly InspectionRepository _inspectionRepository;
+
+    /// <summary>
+    /// Construtor que recebe as dependências necessárias via Injeção de Dependência.
+    /// </summary>
+    /// <param name="inspectionRepository">Repositório de acesso ao banco para inspeções.</param>
+    public WalkaroundController(InspectionRepository inspectionRepository)
+    {
+        _inspectionRepository = inspectionRepository;
+    }
+    
+    
+    /// <summary>
+    /// Exibe a tela de criação de uma nova inspeção de segurança.
+    /// </summary>
+    /// <returns></returns>
     [HttpGet]
     public IActionResult Create()
     {
-        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehiclesId");
+        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId");
         if (!vehicleId.HasValue)
         {
             return RedirectToAction("SelectVehicle", "Driver");
         }
         return View();
     }
-
+    
+    /// <summary>
+    /// /// Procesa o envio do formulário de inspeção, gerencia a lógica de defeitos e persiste os dados.
+    /// </summary>
+    /// <param name="form">Coleção de dados enviados pelo formulário.</param>
+    /// <param name="latitude">Latitude capturada via JS.</param>
+    /// <param name="longitude">Longitude capturada via JS.</param>
+    /// <returns></returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Create(IFormCollection form)
+    public IActionResult Create(IFormCollection form, decimal? latitude, decimal? longitude)
     {
-        //1. Captura os dados básicos
-        int vahicleId = HttpContext.Session.GetInt32("SelectedVehiclesId") ?? 0;
+        // Recuperação de contexto da sessão
+        int vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId") ?? 0;
         int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
         
-        //2. Serialização Dinâmica (Critério de Aceite: System.Text.Json)
-        //Agrupo todas as respostas do checklist em um dicionário para virar JSON
-        var checklistAnswers = new Dictionary<string, string>();
-        foreach (var key in form.Keys)
-        {
-            // Filtrando apenas os campos do checklist
-            if (key.StartsWith("chk_"))
-            {
-                checklistAnswers.Add(key.Replace("chk_", ""), form[key]);
-            }
-            
-        }
-
-        string checklistJson = JsonSerializer.Serialize(checklistAnswers);
-
-        // 3. Lógica de Defeitos (Se houver algum "Fail", marcamos has_defect)
-        bool hasDefect = checklistAnswers.Values.Any(v => v == "Fail");
-
+        //Captura de dados obrigatórios do formulário
+        int odometer = int.Parse(form["Odometer"]);
+        string defectNotes = form["DefectNotes"];
+        
+        // Filtragem e Serialização JSON das respostas (Critério de Aceite)
+        var checklistAnswers = form.Keys
+            .Where(k => k.StartsWith("chk_"))
+            .ToDictionary(k => k.Replace("chk_", ""), k => form[k].ToString());
+        string json = JsonSerializer.Serialize(checklistAnswers);
+        
+        // Definição do estado de risco do veículo
+        bool hasDefect = checklistAnswers.Values.Any(v => v =="Fail");
+        
+        // Persistência via Repositório (SQL + Transação)
+        _inspectionRepository.Add(userId, vehicleId, odometer, json, hasDefect, defectNotes, latitude, longitude);
+        
         return RedirectToAction("Index", "Home");
     }
 }

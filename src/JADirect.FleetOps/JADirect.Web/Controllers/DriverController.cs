@@ -1,4 +1,5 @@
 using JADirect.Data.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JADirect.Web.Controllers;
@@ -6,6 +7,7 @@ namespace JADirect.Web.Controllers;
 /// <summary>
 /// Este Controlller é focado nas operações do dia a dia do motorista.
 /// </summary>
+[Authorize]
 public class DriverController : Controller
 {
     private readonly VehicleRepository _vehicleRepository;
@@ -34,6 +36,7 @@ public class DriverController : Controller
     /// <param name="regNo">A placa do veículo para exibição rápida.</param>
     /// <returns></returns>
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult ConfirmVehicle(int vehicleId, string registrationNo)
     {
         if (vehicleId <= 0 || string.IsNullOrEmpty(registrationNo))
@@ -41,10 +44,9 @@ public class DriverController : Controller
             return RedirectToAction("SelectVehicle");
         }
         // Armazenando na sessão para uso nos módulos de Walkaround e Daily Log
-        HttpContext.Session.SetInt32("SelectedVehiclesId", vehicleId);
+        HttpContext.Session.SetInt32("SelectedVehicleId", vehicleId);
         HttpContext.Session.SetString("SelectedVehicleRegistrationNo", registrationNo);
         
-        // Por enquanto, retorna à Home até criarmos o próximo card
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Create", "Walkaround");
     }
 }

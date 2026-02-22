@@ -3,30 +3,24 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using JADirect.Web.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using JADirect.Data.Repositories; // Namespace dos repositórios
 
 var builder = WebApplication.CreateBuilder(args);
-
-
 
 // ---------------------------------------------------------
 // 1. CONFIGURAÇÃO DE SERVIÇOS (CONTAINER)
 // ---------------------------------------------------------
 
-// Suporte para MVC (Controllers e Views)
 builder.Services.AddControllersWithViews();
 
-
-// Configuração de Sessão
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    // Aqui eu estipulo a jornada de trabalho com um veículo. apos 12h ele vai automaticamente para tela de seleção de veículo.
     options.IdleTimeout = TimeSpan.FromHours(12);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-// Configuração de autenticação via Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -35,30 +29,25 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromMinutes(8);
     });
 
-
 // ---------------------------------------------------------
 // 2. INJEÇÃO DE DEPENDÊNCIA
 // ---------------------------------------------------------
 
-// Registra a Factory de Conexão com a String do appsettings.json
-// Adicione as dependências (Injeção de Dependência)
+// Infraestrutura
 builder.Services.AddScoped<JADirect.Data.Infrastructure.DbConnectionFactory>(sp =>
     new JADirect.Data.Infrastructure.DbConnectionFactory(builder.Configuration.GetConnectionString("DefaultConnection")
                                                          ?? throw new Exception("Connection String not found.")));
 
+// Repositórios (Camada de Dados - SQL Puro)
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<VehicleRepository>();
+builder.Services.AddScoped<InspectionRepository>(); // Novo repositório adicionado aqui
 
-// Registra os Repositórios (Camada de Dados)
-builder.Services.AddScoped<JADirect.Data.Repositories.UserRepository>();
-builder.Services.AddScoped<JADirect.Data.Repositories.VehicleRepository>();
+// Serviços (Camada de Aplicação)
 builder.Services.AddScoped<FleetService>();
-
-// Registra os Serviços (Camada de Aplicação)
 builder.Services.AddScoped<JADirect.Application.Services.AuthService>();
 
-
-
 var app = builder.Build();
-
 
 // ---------------------------------------------------------
 // 3. MIDDLEWARES (PIPELINE DE EXECUÇÃO)
@@ -75,12 +64,8 @@ app.UseStaticFiles();
 app.UseSession();
 app.UseRouting();
 
-
-//Essencial: Primeiro Authentication e depois Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Configuração de rota padrão.
 
 app.MapControllerRoute(
     name: "default",
