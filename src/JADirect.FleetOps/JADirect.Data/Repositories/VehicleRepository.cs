@@ -166,8 +166,38 @@ public class VehicleRepository
         }
         return list;
     }
-    
-    
-    
-    
+
+
+    /// <summary>
+    /// Atualiza a data da última inspeção realizada para um veículo específico.
+    /// Este método ajuda a renovar o ciclo de conformidade de 7 dias no FleetService.
+    /// </summary>
+    /// <param name="vehicleId">ID primário do veículo.</param>
+    /// <param name="checkDate">Data e hora em que a inspeção foi concluída.</param>
+    public void UpdateLastInspectionDate(int vehicleId, DateTime checkDate)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "UPDATE vehicles SET last_walkaround_at = @CheckDate WHERE id = @VehicleId";
+            
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+
+                var paramDate = command.CreateParameter();
+                paramDate.ParameterName = "@CheckDate";
+                paramDate.Value = checkDate;
+                command.Parameters.Add(paramDate);
+
+
+                var paramId = command.CreateParameter();
+                paramId.ParameterName = "@VehicleId";
+                paramId.Value = vehicleId;
+                command.Parameters.Add(paramId);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+    }
 }

@@ -10,14 +10,16 @@ namespace JADirect.Web.Controllers;
 public class WalkaroundController : Controller
 {
     private readonly InspectionRepository _inspectionRepository;
+    private readonly VehicleRepository _vehicleRepository;
 
     /// <summary>
     /// Construtor que recebe as dependências necessárias via Injeção de Dependência.
     /// </summary>
     /// <param name="inspectionRepository">Repositório de acesso ao banco para inspeções.</param>
-    public WalkaroundController(InspectionRepository inspectionRepository)
+    public WalkaroundController(InspectionRepository inspectionRepository, VehicleRepository vehicleRepository)
     {
         _inspectionRepository = inspectionRepository;
+        _vehicleRepository = vehicleRepository;
     }
     
     
@@ -50,6 +52,7 @@ public class WalkaroundController : Controller
         // Recuperação de contexto da sessão
         int vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId") ?? 0;
         int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        DateTime completionDate = DateTime.Now;
         
         //Captura de dados obrigatórios do formulário
         int odometer = int.Parse(form["Odometer"]);
@@ -66,7 +69,11 @@ public class WalkaroundController : Controller
         
         // Persistência via Repositório (SQL + Transação)
         _inspectionRepository.Add(userId, vehicleId, odometer, json, hasDefect, defectNotes, latitude, longitude);
-        
+
+        if (!hasDefect)
+        {
+            _vehicleRepository.UpdateLastInspectionDate(vehicleId, completionDate);
+        }
         return RedirectToAction("Index", "Home");
     }
 }

@@ -58,8 +58,14 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
             commandInsert.Parameters.AddWithValue("longitude", (object?)longitude ?? DBNull.Value);
             commandInsert.ExecuteNonQuery();
 
-            string sqlUpdate = @"UPDATE vehicles SET last_walkaround_at = NOW()" + (hasDefect ? ", status_id = 4 ":" ") + " WHERE id = @vehicleId";
-
+            
+            // 2. Lógica de Bloqueio (Tabela: vehicles)
+            // Se houver defeito, bloqueamos o veículo (status_id = 4).
+            // Se NÃO houver defeito, apenas selecionamos 1 (operação inofensiva) para não quebrar o fluxo da transação.
+            string sqlUpdate = hasDefect 
+                ? "UPDATE vehicles SET status_id = 4 WHERE id = @vehicleId" 
+                : "SELECT 1";
+            
             using var commandUpdate =
                 new MySqlCommand(sqlUpdate, (MySqlConnection)connection, (MySqlTransaction)transaction);
             commandUpdate.Parameters.AddWithValue("vehicleId", vehicleId);
