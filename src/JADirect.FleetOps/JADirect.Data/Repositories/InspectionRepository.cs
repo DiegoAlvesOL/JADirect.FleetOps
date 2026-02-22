@@ -1,5 +1,6 @@
 using System.Data.Common;
 using JADirect.Data.Infrastructure;
+using JADirect.Domain.Models;
 using MySql.Data.MySqlClient;
 
 namespace JADirect.Data.Repositories;
@@ -78,5 +79,56 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
             transaction.Rollback();
             throw;
         }
+    }
+    
+    
+    /// <summary>
+    /// Recupera o histórico completo de inspeções de um veículo, incluindo os nomes dos motoristas e a placa.
+    /// Utiliza INNER JOIN múltiplo para garantir a integridade dos dados na auditoria.
+    /// </summary>
+    /// <param name="vehicleId">ID do veículo consultado.</param>
+    /// <returns>Lista de modelos formatados para o histórico.</returns>
+    public List<WalkaroundHistoryViewModel> GetHistoryByVehicleId(int vehicleId)
+    {
+        var history = new List<WalkaroundHistoryViewModel>();
+        using var connection = _connectionFactory.CreateConnection();
+        
+        const string sql = @"
+            SELECT 
+                wc.check_date, 
+                u.first_name, 
+                u.surname, 
+                v.registration_no, 
+                wc.odometer, 
+                wc.has_defect, 
+                wc.defect_notes, 
+                wc.latitude, 
+                wc.longitude 
+            FROM walkaround_checks wc 
+            INNER JOIN users u ON wc.user_id = u.id 
+            INNER JOIN vehicles v ON wc.vehicle_id = v.id 
+            WHERE wc.vehicle_id = @vehicleId 
+            ORDER BY wc.check_date DESC";
+
+        using var command = new MySqlCommand(sql, (MySqlConnection)connection);
+        command.Parameters.AddWithValue("vehicleId", vehicleId);
+        
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            history.Add(new WalkaroundHistoryViewModel
+            {
+                CheckDate = Convert.ToDateTime(reader["check_date"]),
+                DriverName = $"{reader["first_name"]} {reader["surname"]}",
+                RegistrationNo = reader["registration_no"].ToString(),
+                Odometer = Convert.ToInt32(reader["odometer"]),
+                hasDefect = Convert.ToBoolean(reader["has_defect"]),
+                DefectNotes = reader["defect_notes"]?.ToString(),
+                Latitude = reader["latitude"] != DBNull.Value ? Convert.ToDecimal(reader["latitude"]) : null,
+                Longitude = reader["longitude"] != DBNull.Value ? Convert.ToDecimal(reader["longitude"]) : null,
+            });
+        }
+        return history;
     }
 }

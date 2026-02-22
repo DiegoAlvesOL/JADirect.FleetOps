@@ -76,4 +76,23 @@ public class WalkaroundController : Controller
         }
         return RedirectToAction("Index", "Home");
     }
+
+    /// <summary>
+    /// Exibe o histórico de auditoria para o veículo atualmente selecionado na sessão.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    public IActionResult History()
+    {
+        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId");
+        if (!vehicleId.HasValue)
+        {
+            return RedirectToAction("SelectVehicle", "Home");
+        }
+
+        var history = _inspectionRepository.GetHistoryByVehicleId(vehicleId.Value);
+        ViewBag.RegistrationNo = HttpContext.Session.GetString("SelectedVehicleRegistrationNo");
+        
+        return View(history);
+    }
 }
