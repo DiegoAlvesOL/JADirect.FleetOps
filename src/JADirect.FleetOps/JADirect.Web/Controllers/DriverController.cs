@@ -47,6 +47,6 @@ public class DriverController : Controller
         HttpContext.Session.SetInt32("SelectedVehicleId", vehicleId);
         HttpContext.Session.SetString("SelectedVehicleRegistrationNo", registrationNo);
         
-        return RedirectToAction("Create", "Walkaround");
+        return RedirectToAction("Index", "Home");
     }
 }

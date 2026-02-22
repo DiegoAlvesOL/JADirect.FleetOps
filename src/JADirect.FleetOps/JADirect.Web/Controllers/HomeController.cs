@@ -32,7 +32,7 @@ public class HomeController : Controller
         }
         
         //2. Verificação de Sessão (Redireciona se não houver veículo selecionado)
-        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehiclesId");
+        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId");
         string registrationNo = HttpContext.Session.GetString("SelectedVehicleRegistrationNo");
 
         if (!vehicleId.HasValue)
