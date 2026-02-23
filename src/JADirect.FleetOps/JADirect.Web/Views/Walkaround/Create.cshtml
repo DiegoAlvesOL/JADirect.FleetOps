@@ -1,90 +1,118 @@
 @* ARQUIVO: Create.cshtml (Main View)
-    OBJETIVO: Interface principal do módulo de Walkaround.
-    RELAÇÃO: Este arquivo é o "HOST" (Pai). Ele define a estrutura global da página, 
-    o formulário, a geolocalização e o botão de envio.
-    MODULARIDADE: Ele herda a estrutura de repetição do arquivo '_CheckItem.cshtml', 
-    injetando dados específicos (ID e Label) em cada instância para manter o código DRY (Don't Repeat Yourself).
+    OBJETIVO: Interface principal do módulo de Walkaround com seções expansíveis e progresso.
+    RELAÇÃO: Este arquivo é o "HOST" (Pai). Ele gerencia a estrutura global e a lógica de UI.
 *@
 
 @model dynamic
 
 <style>
-    .checklist-section { 
-        border: 2px solid #e9ecef; 
-        border-radius: 15px; 
-        padding: 20px; 
-        margin-bottom: 25px; 
-        background-color: #fff; 
-    }
-    .checklist-section legend { 
-        width: auto; 
-        padding: 0 15px; 
-        font-weight: bold; 
-        color: #008080; 
-        float: none; 
-        font-size: 1.1rem; 
-    }
-    
-    .option-card { 
-        border: 2px solid #dee2e6; 
-        border-radius: 12px; 
-        padding: 12px; 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-        width: 48%; 
-        text-align: center; 
-        font-weight: bold; 
+    /* Estrutura das Seções (Acordeão) */
+    .checklist-section {
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        background-color: #fff;
+        overflow: hidden;
+        transition: all 0.3s ease;
     }
 
-    .option-card i {
+    .section-header {
+        padding: 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f8f9fa;
+        user-select: none;
+    }
+
+    .section-title {
+        font-weight: bold;
+        color: #008080; /* Teal Padrão */
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .section-content {
+        padding: 20px;
+        display: none;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .section-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @Html.Raw("@")keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Barra de Progresso por Seção */
+    .progress-container { width: 80px; height: 8px; background: #dee2e6; border-radius: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; background: #008080; transition: width 0.4s ease; }
+    .progress-text { font-size: 0.75rem; color: #6c757d; font-weight: bold; margin-left: 10px; min-width: 35px; }
+
+    /* ESTILO DOS BOTÕES (PASS/FAIL) */
+    .option-card {
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 48%;
+        text-align: center;
+        font-weight: bold;
         color: #adb5bd;
+        background-color: #fff;
     }
 
-    .btn-check:checked + .option-card i {
+    .btn-check-custom { display: none; }
+
+    /* Quando PASS é clicado: Usa o TEAL unificado */
+    .btn-check-custom[value="Pass"]:checked + .option-card {
+        background-color: #008080;
         color: white;
+        border-color: #008080;
+        box-shadow: 0 4px 8px rgba(0,128,128,0.2);
     }
-    
-    .btn-check:checked + .option-card { 
-        background-color: #008080; 
-        color: white; 
-        border-color: #008080; 
-        transform: translateY(-2px); 
-        box-shadow: 0 4px 8px rgba(0,128,128,0.2); 
+
+    /* Quando FAIL é clicado: Vermelho sério */
+    .btn-check-custom[value="Fail"]:checked + .option-card {
+        background-color: #d93025;
+        color: white;
+        border-color: #d93025;
+        box-shadow: 0 4px 8px rgba(217,48,37,0.2);
     }
-    .btn-check:checked + .option-card.fail { 
-        background-color: #dc3545; 
-        border-color: #dc3545; 
-        box-shadow: 0 4px 8px rgba(220,53,69,0.2); 
-    }
-    
-    .btn-submit { 
-        min-height: 70px; 
-        border-radius: 15px; 
-        font-size: 1.3rem; 
-        border: none; 
-        background-color: #008080; 
-        color: white; 
+
+    .btn-submit {
+        min-height: 70px;
+        border-radius: 15px;
+        font-size: 1.3rem;
+        border: none;
+        background-color: #008080;
+        color: white;
         transition: all 0.2s;
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }
-    
-    .btn-submit:hover { 
-        background-color: #006666; 
-        transform: translateY(-1px); 
-        box-shadow: 0 8px 15px rgba(0,0,0,0.2); 
-    }
-    
-    .btn-submit:active { 
-        transform: translateY(2px); 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-    }
+
+    .btn-submit:hover { background-color: #006666; color: white; }
 </style>
 
 <div class="container mt-4 mb-5">
+    @* Navegação Superior *@
+    <div class="mb-3">
+        <a asp-controller="Driver" asp-action="SelectVehicle" class="text-decoration-none fw-bold" style="color: #008080;">
+            <i class="bi bi-arrow-left"></i> Back to Vehicle Selection
+        </a>
+    </div>
+
+    @* Cabeçalho conforme solicitado *@
     <div class="text-center mb-4">
-        <h2 class="fw-bold text-teal"><i class="bi bi-clipboard-check"></i> Vehicle Inspection</h2>
+        <h2 class="fw-bold" style="color: #008080;"><i class="bi bi-clipboard-check"></i> Vehicle Inspection</h2>
         <p class="text-muted px-3">
-            Walk around check items to be checked by the driver before and while driving. 
+            Walk around check items to be checked by the driver before and while driving.
             Select <span class="text-success fw-bold">Pass</span> (satisfactory) or <span class="text-danger fw-bold">Fail</span> (defect noted).
         </p>
     </div>
@@ -94,47 +122,66 @@
         <input type="hidden" name="Latitude" id="lat" />
         <input type="hidden" name="Longitude" id="lon" />
 
-        <fieldset class="checklist-section shadow-sm">
-            <legend>1. Exterior & Structure</legend>
-            @await Html.PartialAsync("_CheckItem", new { ID = "tyres", Label = "Tyres condition, inflation & fixings" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "lights", Label = "Lights, indicators & reflectors" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "tax_discs", Label = "CVRT tax & insurance discs" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "bumpers", Label = "Bumpers & sideguards" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "plates", Label = "Number plates & marker plates" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "mirrors", Label = "Mirrors & Windows" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "fuel_cap", Label = "Fuel cap secure" })
-        </fieldset>
-
-        <fieldset class="checklist-section shadow-sm">
-            <legend>2. Engine & Fluids</legend>
-            @await Html.PartialAsync("_CheckItem", new { ID = "fluids", Label = "Oil, water, washer & fuel levels" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "leaks", Label = "Fuel / Oil leaks" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "exhaust", Label = "Exhaust & Smoke emission" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "battery", Label = "Wiring & battery" })
-        </fieldset>
-
-        <fieldset class="checklist-section shadow-sm">
-            <legend>3. Cab & Controls</legend>
-            @await Html.PartialAsync("_CheckItem", new { ID = "wipers", Label = "Windscreen wipers & washers" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "horn", Label = "Horn" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "seats", Label = "Drivers seat & seat belts" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "steering", Label = "Steering controls & operation" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "brakes", Label = "Brake controls & operation" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "abs_warning", Label = "ABS/EBS & instruments/gauges" })
-            @await Html.PartialAsync("_CheckItem", new { ID = "load", Label = "Load security & distribution" })
-        </fieldset>
-        
-        <div class="checklist-section shadow-sm mb-4">
-            <label class="form-label fw-bold"><i class="bi bi-speedometer2"></i> Current Odometer Reading</label>
-            <input type="number" 
-                   name="Odometer" 
-                   class="form-control form-control-lg" 
-                   required 
-                   min="0" 
-                   placeholder="Enter current KM">
+        <div class="checklist-section shadow-sm" id="sec-1">
+            <div class="section-header" onclick="toggleSection('sec-1')">
+                <p class="section-title">1. Exterior & Structure</p>
+                <div class="d-flex align-items-center">
+                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
+                    <span class="progress-text">0/7</span>
+                </div>
+            </div>
+            <div class="section-content active">
+                @await Html.PartialAsync("_CheckItem", new { ID = "tyres", Label = "Tyres condition, inflation & fixings" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "lights", Label = "Lights, indicators & reflectors" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "tax_discs", Label = "CVRT tax & insurance discs" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "bumpers", Label = "Bumpers & sideguards" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "plates", Label = "Number plates & marker plates" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "mirrors", Label = "Mirrors & Windows" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "fuel_cap", Label = "Fuel cap secure" })
+            </div>
         </div>
 
-        <div id="defectNotesContainer" style="display: none;" class="checklist-section border-danger animate__animated animate__fadeIn">
+        <div class="checklist-section shadow-sm" id="sec-2">
+            <div class="section-header" onclick="toggleSection('sec-2')">
+                <p class="section-title">2. Engine & Fluids</p>
+                <div class="d-flex align-items-center">
+                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
+                    <span class="progress-text">0/4</span>
+                </div>
+            </div>
+            <div class="section-content">
+                @await Html.PartialAsync("_CheckItem", new { ID = "fluids", Label = "Oil, water, washer & fuel levels" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "leaks", Label = "Fuel / Oil leaks" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "exhaust", Label = "Exhaust & Smoke emission" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "battery", Label = "Wiring & battery" })
+            </div>
+        </div>
+
+        <div class="checklist-section shadow-sm" id="sec-3">
+            <div class="section-header" onclick="toggleSection('sec-3')">
+                <p class="section-title">3. Cab & Controls</p>
+                <div class="d-flex align-items-center">
+                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
+                    <span class="progress-text">0/7</span>
+                </div>
+            </div>
+            <div class="section-content">
+                @await Html.PartialAsync("_CheckItem", new { ID = "wipers", Label = "Windscreen wipers & washers" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "horn", Label = "Horn" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "seats", Label = "Drivers seat & seat belts" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "steering", Label = "Steering controls & operation" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "brakes", Label = "Brake controls & operation" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "abs_warning", Label = "ABS/EBS & instruments/gauges" })
+                @await Html.PartialAsync("_CheckItem", new { ID = "load", Label = "Load security & distribution" })
+            </div>
+        </div>
+
+        <div class="checklist-section shadow-sm p-4">
+            <label class="form-label fw-bold"><i class="bi bi-speedometer2"></i> Current Odometer Reading</label>
+            <input type="number" name="Odometer" class="form-control form-control-lg border-2" required min="0" placeholder="Enter current KM">
+        </div>
+
+        <div id="defectNotesContainer" style="display: none;" class="checklist-section border-danger p-4">
             <label class="form-label fw-bold text-danger">Defect Description</label>
             <textarea name="DefectNotes" id="DefectNotes" class="form-control" rows="3" placeholder="Describe the problem..."></textarea>
         </div>
@@ -148,29 +195,65 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Lógica de Geolocalização
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    document.getElementById('lat').value = position.coords.latitude;
-                    document.getElementById('lon').value = position.coords.longitude;
-                });
-            }
+<script>
+    // Função para Expandir/Recolher seções
+    function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        const content = section.querySelector('.section-content');
+        const isActive = content.classList.contains('active');
 
-            // Lógica de exibição condicional das notas de defeito
-            document.querySelectorAll('.btn-check').forEach(input => {
-                input.addEventListener('change', () => {
-                    const anyFail = Array.from(document.querySelectorAll('input[value="Fail"]'))
-                                         .some(i => i.checked);
-                    
-                    const container = document.getElementById('defectNotesContainer');
-                    const textarea = document.getElementById('DefectNotes');
-                    
-                    container.style.display = anyFail ? 'block' : 'none';
-                    textarea.required = anyFail; 
-                });
-            });
+        // Comportamento de Acordeão: fecha as outras se quiser focar em uma
+        document.querySelectorAll('.section-content').forEach(c => c.classList.remove('active'));
+
+        if (!isActive) {
+            content.classList.add('active');
+        }
+    }
+
+    // Função de Progresso e Validação
+    function refreshUI() {
+        document.querySelectorAll('.checklist-section[id^="sec-"]').forEach(section => {
+            const total = section.querySelectorAll('.mb-4').length;
+            const checked = section.querySelectorAll('input[type="radio"]:checked').length;
+            const percentage = total > 0 ? (checked / total) * 100 : 0;
+
+            const bar = section.querySelector('.progress-bar-fill');
+            const text = section.querySelector('.progress-text');
+
+            bar.style.width = percentage + '%';
+            text.innerText = checked + '/' + total;
+
+            // Muda a cor da barra para verde pleno quando termina a seção
+            bar.style.backgroundColor = (percentage === 100) ? "#198754" : "#008080";
         });
-    </script>
+
+        // Lógica do campo de defeito (Fail)
+        const hasFail = Array.from(document.querySelectorAll('input[value="Fail"]')).some(r => r.checked);
+        const container = document.getElementById('defectNotesContainer');
+        const input = document.getElementById('DefectNotes');
+
+        container.style.display = hasFail ? 'block' : 'none';
+        input.required = hasFail;
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // GPS
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(p => {
+                document.getElementById('lat').value = p.coords.latitude;
+                document.getElementById('lon').value = p.coords.longitude;
+            });
+        }
+
+        // Monitorar cliques nos rádios
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('btn-check-custom')) {
+                refreshUI();
+            }
+        });
+
+        // Inicializar progresso caso haja valores pré-preenchidos
+        refreshUI();
+    });
+</script>
 }

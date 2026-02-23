@@ -23,13 +23,12 @@ public class InspectionRepository
     } 
 
     /// <summary>
-    /// Registra uma nova inspeção no banco de dados e, em caso de defeito, bloqueia o veículo.
-    /// Esta operação é executada dentro de uma transação atômica.
+    /// Registra uma nova inspeção e atualiza o estado do veículo (Data e Status) em uma transação única.
     /// </summary>
     /// <param name="userId">ID do motorista executor.</param>
     /// <param name="vehicleId">ID do veículo inspecionado.</param>
     /// <param name="odometer">Leitura atual do odômetro.</param>
-    /// <param name="checklistJson">Dados serializados dos 27 itens de segurança.</param>
+    /// <param name="checklistJson">Dados serializados dos itens de segurança.</param>
     /// <param name="hasDefect">Sinaliza se houve falha em algum item.</param>
     /// <param name="defectNotes">Descrição textual detalhada dos defeitos.</param>
     /// <param name="latitude">Latitude da captura GPS.</param>
@@ -39,16 +38,14 @@ public class InspectionRepository
         using var connection = _connectionFactory.CreateConnection();
         connection.Open();
 
-        // Iniciando transação para garantir que o bloqueio do veículo seja vinculado à inspeção
         using var transaction = connection.BeginTransaction();
         try
         {
-            //1. Registro da Inspeção (Tabela: walkaround_checks)
+            // 1. Registro da Inspeção (Tabela: walkaround_checks)
             const string sqlInsert = @"INSERT INTO walkaround_checks(check_date, user_id, vehicle_id, odometer, checklist_json, has_defect, defect_notes, latitude, longitude)
-VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defectNotes, @latitude, @longitude)";
+                                       VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson, @hasDefect, @defectNotes, @latitude, @longitude)";
 
-            using var commandInsert =
-                new MySqlCommand(sqlInsert, (MySqlConnection)connection, (MySqlTransaction)transaction);
+            using var commandInsert = new MySqlCommand(sqlInsert, (MySqlConnection)connection, (MySqlTransaction)transaction);
             commandInsert.Parameters.AddWithValue("userId", userId);
             commandInsert.Parameters.AddWithValue("vehicleId", vehicleId);
             commandInsert.Parameters.AddWithValue("odometer", odometer);
@@ -59,16 +56,16 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
             commandInsert.Parameters.AddWithValue("longitude", (object?)longitude ?? DBNull.Value);
             commandInsert.ExecuteNonQuery();
 
+            // 2. Atualização Atômica do Veículo (Tabela: vehicles)
+            // Independentemente do resultado (Pass/Fail), a data da última inspeção é atualizada.
+            // O status_id será 4 se houver defeito, ou 1 se o veículo estiver operacional.
+            const string sqlUpdate = @"UPDATE vehicles 
+                                       SET status_id = @statusId, 
+                                           last_walkaround_at = NOW() 
+                                       WHERE id = @vehicleId";
             
-            // 2. Lógica de Bloqueio (Tabela: vehicles)
-            // Se houver defeito, bloqueamos o veículo (status_id = 4).
-            // Se NÃO houver defeito, apenas selecionamos 1 (operação inofensiva) para não quebrar o fluxo da transação.
-            string sqlUpdate = hasDefect 
-                ? "UPDATE vehicles SET status_id = 4 WHERE id = @vehicleId" 
-                : "SELECT 1";
-            
-            using var commandUpdate =
-                new MySqlCommand(sqlUpdate, (MySqlConnection)connection, (MySqlTransaction)transaction);
+            using var commandUpdate = new MySqlCommand(sqlUpdate, (MySqlConnection)connection, (MySqlTransaction)transaction);
+            commandUpdate.Parameters.AddWithValue("statusId", hasDefect ? 4 : 1);
             commandUpdate.Parameters.AddWithValue("vehicleId", vehicleId);
             commandUpdate.ExecuteNonQuery();
             
@@ -81,13 +78,9 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
         }
     }
     
-    
     /// <summary>
-    /// Recupera o histórico completo de inspeções de um veículo, incluindo os nomes dos motoristas e a placa.
-    /// Utiliza INNER JOIN múltiplo para garantir a integridade dos dados na auditoria.
+    /// Recupera o histórico completo de inspeções de um veículo para auditoria.
     /// </summary>
-    /// <param name="vehicleId">ID do veículo consultado.</param>
-    /// <returns>Lista de modelos formatados para o histórico.</returns>
     public List<WalkaroundHistoryViewModel> GetHistoryByVehicleId(int vehicleId)
     {
         var history = new List<WalkaroundHistoryViewModel>();
@@ -95,15 +88,8 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
         
         const string sql = @"
             SELECT 
-                wc.check_date, 
-                u.first_name, 
-                u.surname, 
-                v.registration_no, 
-                wc.odometer, 
-                wc.has_defect, 
-                wc.defect_notes, 
-                wc.latitude, 
-                wc.longitude 
+                wc.check_date, u.first_name, u.surname, v.registration_no, 
+                wc.odometer, wc.has_defect, wc.defect_notes, wc.latitude, wc.longitude 
             FROM walkaround_checks wc 
             INNER JOIN users u ON wc.user_id = u.id 
             INNER JOIN vehicles v ON wc.vehicle_id = v.id 
@@ -130,5 +116,21 @@ VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson,  @hasDefect, @defe
             });
         }
         return history;
+    }
+    
+    /// <summary>
+    /// Busca a data da inspeção mais recente para o semáforo do Dashboard.
+    /// </summary>
+    public DateTime? GetLastInspectionDate(int vehicleId)
+    {
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+        const string sql = "SELECT MAX(check_date) FROM walkaround_checks WHERE vehicle_id = @vehicleId";
+        
+        using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("vehicleId", vehicleId);
+        
+        connection.Open();
+        var result = command.ExecuteScalar();
+        return result == DBNull.Value ? null : (DateTime?)result;
     }
 }

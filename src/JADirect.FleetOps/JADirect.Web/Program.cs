@@ -1,7 +1,4 @@
-using JADirect.Data.Services;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using JADirect.Web.Data;
+using JADirect.Application.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using JADirect.Data.Repositories; // Namespace dos repositórios
 
@@ -47,7 +44,7 @@ builder.Services.AddScoped<DailyLogRepository>();
 
 // Serviços (Camada de Aplicação)
 builder.Services.AddScoped<FleetService>();
-builder.Services.AddScoped<JADirect.Application.Services.AuthService>();
+builder.Services.AddScoped<AuthService>();
 
 var app = builder.Build();
 

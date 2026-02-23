@@ -1,22 +1,22 @@
 @* ARQUIVO: _CheckItem.cshtml (Partial View)
     OBJETIVO: Componente reutilizável para itens do checklist.
-    RELAÇÃO: Este arquivo é o "CLIENTE" (Filho). Ele define o layout atômico de uma 
-    pergunta (Label + Botões Pass/Fail).
-    IMPORTÂNCIA: Centraliza a manutenção visual. Qualquer alteração aqui reflete em 
-    todos os itens chamados pelo 'Create.cshtml', garantindo consistência e agilidade.
+    RELAÇÃO: Este arquivo é o "CLIENTE" (Filho). Ele define o layout de cada pergunta.
 *@
 
 <div class="mb-4">
     <label class="form-label d-block fw-bold text-secondary">@Model.Label</label>
     <div class="d-flex justify-content-between">
-        <input type="radio" class="btn-check" name="chk_@Model.ID" id="@(Model.ID)_pass" value="Pass" required>
+        
+        @* PASS - JOIA PARA CIMA *@
+        <input type="radio" class="btn-check-custom" name="@Model.ID" id="@(Model.ID)_pass" value="Pass" required>
         <label class="option-card" for="@(Model.ID)_pass">
             <i class="bi bi-hand-thumbs-up-fill d-block fs-4 mb-1"></i>
             PASS
         </label>
 
-        <input type="radio" class="btn-check" name="chk_@Model.ID" id="@(Model.ID)_fail" value="Fail">
-        <label class="option-card fail" for="@(Model.ID)_fail">
+        @* FAIL - JOIA PARA BAIXO *@
+        <input type="radio" class="btn-check-custom" name="@Model.ID" id="@(Model.ID)_fail" value="Fail">
+        <label class="option-card" for="@(Model.ID)_fail">
             <i class="bi bi-hand-thumbs-down-fill d-block fs-4 mb-1"></i>
             FAIL
         </label>

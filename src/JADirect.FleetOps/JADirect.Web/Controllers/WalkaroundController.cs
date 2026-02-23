@@ -16,12 +16,12 @@ public class WalkaroundController : Controller
     /// Construtor que recebe as dependências necessárias via Injeção de Dependência.
     /// </summary>
     /// <param name="inspectionRepository">Repositório de acesso ao banco para inspeções.</param>
+    /// <param name="vehicleRepository">Repositório de acesso ao banco para veículos.</param>
     public WalkaroundController(InspectionRepository inspectionRepository, VehicleRepository vehicleRepository)
     {
         _inspectionRepository = inspectionRepository;
         _vehicleRepository = vehicleRepository;
     }
-    
     
     /// <summary>
     /// Exibe a tela de criação de uma nova inspeção de segurança.
@@ -39,7 +39,7 @@ public class WalkaroundController : Controller
     }
     
     /// <summary>
-    /// /// Procesa o envio do formulário de inspeção, gerencia a lógica de defeitos e persiste os dados.
+    /// Processa o envio do formulário de inspeção e delega a persistência unificada ao repositório.
     /// </summary>
     /// <param name="form">Coleção de dados enviados pelo formulário.</param>
     /// <param name="latitude">Latitude capturada via JS.</param>
@@ -52,28 +52,27 @@ public class WalkaroundController : Controller
         // Recuperação de contexto da sessão
         int vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId") ?? 0;
         int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-        DateTime completionDate = DateTime.Now;
         
-        //Captura de dados obrigatórios do formulário
+        // Captura de dados obrigatórios do formulário
         int odometer = int.Parse(form["Odometer"]);
         string defectNotes = form["DefectNotes"];
         
-        // Filtragem e Serialização JSON das respostas (Critério de Aceite)
+        // LISTA DE CAMPOS FIXOS: Ignoramos estes para capturar apenas as perguntas do checklist
+        var fixedFields = new[] { "Odometer", "DefectNotes", "__RequestVerificationToken", "Latitude", "Longitude" };
+
+        // Filtragem e Serialização JSON das respostas
         var checklistAnswers = form.Keys
-            .Where(k => k.StartsWith("chk_"))
-            .ToDictionary(k => k.Replace("chk_", ""), k => form[k].ToString());
+            .Where(k => !fixedFields.Contains(k))
+            .ToDictionary(k => k, k => form[k].ToString());
+
         string json = JsonSerializer.Serialize(checklistAnswers);
         
-        // Definição do estado de risco do veículo
-        bool hasDefect = checklistAnswers.Values.Any(v => v =="Fail");
+        // Identifica se houve falha em algum item para definir o novo status do veículo
+        bool hasDefect = checklistAnswers.Values.Any(v => v == "Fail");
         
-        // Persistência via Repositório (SQL + Transação)
+        // O repositório agora executa o fluxo unificado: salva o log e atualiza o veículo (status e data)
         _inspectionRepository.Add(userId, vehicleId, odometer, json, hasDefect, defectNotes, latitude, longitude);
 
-        if (!hasDefect)
-        {
-            _vehicleRepository.UpdateLastInspectionDate(vehicleId, completionDate);
-        }
         return RedirectToAction("Index", "Home");
     }
 

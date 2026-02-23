@@ -1,65 +1,148 @@
-@model IEnumerable<JADirect.Domain.Entities.Vehicle>
-@using JADirect.Domain.Enums
+@using JADirect.Domain.Models
+@model DriverDashboardModel
+@{
+    ViewData["Title"] = "Driver Dashboard";
+}
 
-<style>
-    .vehicle-selection-card {
-        border: 2px solid #dee2e6;
-        border-radius: 15px;
-        transition: 0.3s;
-    }
-    .vehicle-selection-card:hover {
-        border-color: #008080;
-        background-color: #f8ffff;
-    }
-    .text-teal { color: #008080; }
-    .btn-confirm-teal {
-        background-color: #008080;
-        color: white;
-        border-radius: 10px;
-        font-weight: bold;
-        padding: 12px;
-        border: none;
-    }
-    .btn-confirm-teal:hover {
-        background-color: #006666;
-        color: white;
-    }
-</style>
+<div class="space-y-8">
+    <section class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 bg-slate-50/50 text-center">
+            <h2 class="text-xl font-bold text-slate-800">Daily Vehicle Selection</h2>
+            <p class="text-sm text-slate-500">Maintain safety compliance to enable daily logging.</p>
+            
+            @* CAMPO DE BUSCA *@
+            <div class="mt-4 max-w-md mx-auto relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                    <i class="ri-search-line"></i>
+                </span>
+                <input type="text" id="vehicleSearch" 
+                       placeholder="Search by Registration No (e.g. 123-D-54321)..." 
+                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-teal-100 focus:border-teal-500 transition-all shadow-sm" />
+            </div>
+        </div>
 
-<div class="container mt-4">
-    <div class="text-center mb-4">
-        <h2 class="fw-bold text-teal">Daily Vehicle Selection</h2>
-        <p class="text-muted">Select the vehicle you are operating today to start.</p>
-    </div>
-
-    <div class="row">
-        @foreach (var vehicle in Model)
-        {
-            <div class="col-12 col-md-6 mb-3">
-                <div class="card vehicle-selection-card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h3 class="fw-bold mb-0">@vehicle.RegistrationNo</h3>
-                                <span class="text-secondary small">@vehicle.Manufacturer @vehicle.Model</span>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-light text-dark border">@vehicle.CurrentKm KM</span>
-                            </div>
+        @* CONTAINER COM SCROLL (max-h-96 limita a altura a cerca de 400px) *@
+        <div class="p-6 overflow-y-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200">
+            <div id="vehicleGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var v in Model.AvailableVehicles)
+                {
+                    string statusCircle = v.StatusColor == "Green" ? "bg-green-500 shadow-green-200" : (v.StatusColor == "Yellow" ? "bg-yellow-400 shadow-yellow-200" : "bg-red-500 shadow-red-200");
+                    
+                    @* Adicionamos a classe 'vehicle-card' e o data-registration para o filtro JS *@
+                    <div class="vehicle-card relative bg-white border-2 border-slate-100 rounded-2xl p-5 hover:shadow-lg transition-all" 
+                         data-registration="@v.RegistrationNo.ToUpper()">
+                        
+                        <div class="absolute top-4 right-4 flex items-center space-x-2">
+                            <span class="text-[10px] font-bold uppercase text-slate-400">@v.StatusMessage</span>
+                            <div class="w-3 h-3 rounded-full @statusCircle shadow-lg animate-pulse"></div>
                         </div>
 
-                        <form asp-action="ConfirmVehicle" method="post">
+                        <div class="mb-6">
+                            <h3 class="text-2xl font-black text-slate-800">@v.RegistrationNo</h3>
+                            <p class="text-xs text-slate-400 uppercase font-bold">@v.Manufacturer @v.Model</p>
+                        </div>
+
+                        <form asp-action="ConfirmVehicle" method="post" class="space-y-3">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="vehicleId" value="@vehicle.Id" />
-                            <input type="hidden" name="registrationNo" value="@vehicle.RegistrationNo" />
-                            
-                            <button type="submit" class="btn btn-confirm-teal w-100">
-                                <i class="bi bi-play-fill"></i> Start Journey with this Vehicle
+                            <input type="hidden" name="vehicleId" value="@v.Id" />
+                            <input type="hidden" name="registrationNo" value="@v.RegistrationNo" />
+
+                            <button type="submit" name="actionType" value="Walkaround" 
+                                    class="w-full border-2 border-slate-800 text-slate-800 py-2 rounded-xl font-bold hover:bg-slate-800 hover:text-white transition-all text-sm">
+                                Perform Walkaround
                             </button>
+
+                            @if (v.IsDailyLogAllowed)
+                            {
+                                <button type="submit" name="actionType" value="DailyLog" 
+                                        class="w-full bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-md">
+                                    Start Daily Log
+                                </button>
+                            }
+                            else
+                            {
+                                <button disabled class="w-full bg-slate-100 text-slate-300 py-3 rounded-xl font-bold cursor-not-allowed border border-slate-200">
+                                    <i class="ri-lock-line mr-1"></i> Daily Log Locked
+                                </button>
+                            }
                         </form>
                     </div>
-                </div>
+                }
             </div>
-        }
-    </div>
+            
+            @* MENSAGEM CASO NADA SEJA ENCONTRADO *@
+            <div id="noResults" class="hidden py-12 text-center text-slate-400 italic">
+                No active vehicle found with this registration.
+            </div>
+        </div>
+    </section>
+
+    @* Seção de Histórico permanece igual *@
+    <section class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 text-center">
+            <h2 class="text-xl font-bold text-slate-800">Your Recent Activity</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-center border-collapse">
+                <thead class="bg-slate-50 text-slate-400 text-xs uppercase font-bold">
+                    <tr>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Vehicle</th>
+                        <th class="px-6 py-4 text-center">Deliveries</th>
+                        <th class="px-6 py-4 text-center">Collections</th>
+                        <th class="px-6 py-4 text-center">Returns</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-600">
+                    @if (Model.RecentActivities.Any())
+                    {
+                        foreach (var log in Model.RecentActivities)
+                        {
+                            <tr class="hover:bg-teal-50/50">
+                                <td class="px-6 py-4 font-bold text-slate-700">@log.LogDate.ToString("dd/MM/yyyy")</td>
+                                <td class="px-6 py-4">
+                                    <span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black border border-slate-200">@log.RegistrationNo</span>
+                                </td>
+                                <td class="px-6 py-4 font-semibold">@log.Deliveries</td>
+                                <td class="px-6 py-4 font-semibold">@log.Collections</td>
+                                <td class="px-6 py-4 text-orange-600 font-bold">@log.Returns</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="px-6 py-12 text-slate-400 italic">No history found.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('vehicleSearch').addEventListener('input', function (e) {
+            const searchTerm = e.target.value.toUpperCase();
+            const cards = document.querySelectorAll('.vehicle-card');
+            let foundCount = 0;
+
+            cards.forEach(card => {
+                const regNo = card.getAttribute('data-registration');
+                if (regNo.includes(searchTerm)) {
+                    card.style.display = 'block';
+                    foundCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Exibe mensagem de erro se nada for encontrado
+            const noResults = document.getElementById('noResults');
+            if (foundCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        });
+    </script>
+}

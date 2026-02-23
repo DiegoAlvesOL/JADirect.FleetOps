@@ -1,14 +1,17 @@
-﻿@model JADirect.Domain.Models.VehicleStatusResult
+﻿@model JADirect.Domain.Models.VehicleStatusViewModel
 
 @{
     ViewData["Title"] = "Home - Driver Panel";
     
-    // Mapeamento de cores CSS baseado no StatusColor do Domain
+    // Mapeamento de cores CSS baseado no StatusColor do novo ViewModel
     string borderClass = Model.StatusColor == "Green" ? "border-success" : 
                         Model.StatusColor == "Yellow" ? "border-warning" : "border-danger";
     
     string textClass = Model.StatusColor == "Green" ? "text-success" : 
                       Model.StatusColor == "Yellow" ? "text-warning" : "text-danger";
+
+    // Lógica inversa: Se NÃO é permitido o Daily Log, a ação de Walkaround é requerida/crítica
+    bool isActionRequired = !Model.IsDailyLogAllowed;
 }
 
 <style>
@@ -41,7 +44,7 @@
                 <i class="bi bi-shield-check status-icon @textClass"></i>
                 <div class="ms-3 text-start">
                     <h4 class="mb-0 @textClass">@Model.StatusColor Status</h4>
-                    <p class="mb-0 text-secondary">@Model.Message</p>
+                    <p class="mb-0 text-secondary">@Model.StatusMessage</p>
                 </div>
             </div>
         </div>
@@ -50,13 +53,14 @@
     <div class="row">
         <div class="col-12">
             
+            @* Se o acesso ao Daily Log está bloqueado, destacamos o botão de Walkaround em Vermelho *@
             <a asp-controller="Walkaround" asp-action="Create" 
-               class="btn @(Model.IsActionRequired ? "btn-danger" : "btn-outline-secondary") btn-fat-finger w-100 shadow-sm">
+               class="btn @(isActionRequired ? "btn-danger" : "btn-outline-secondary") btn-fat-finger w-100 shadow-sm">
                 <i class="bi bi-clipboard-check-fill me-2 fs-3"></i> 
-                @(Model.IsActionRequired ? "START REQUIRED WALKAROUND" : "Retake Safety Check")
+                @(isActionRequired ? "START REQUIRED WALKAROUND" : "Retake Safety Check")
             </a>
 
-            @if (Model.IsActionRequired)
+            @if (isActionRequired)
             {
                 <button class="btn btn-secondary btn-fat-finger w-100 opacity-50 shadow-sm" disabled>
                     <i class="bi bi-lock-fill me-2 fs-3"></i> Daily Log (Walkaround Required)
