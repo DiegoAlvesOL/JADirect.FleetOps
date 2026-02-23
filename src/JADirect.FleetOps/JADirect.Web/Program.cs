@@ -41,7 +41,9 @@ builder.Services.AddScoped<JADirect.Data.Infrastructure.DbConnectionFactory>(sp 
 // Repositórios (Camada de Dados - SQL Puro)
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<VehicleRepository>();
-builder.Services.AddScoped<InspectionRepository>(); // Novo repositório adicionado aqui
+builder.Services.AddScoped<InspectionRepository>();
+builder.Services.AddScoped<DailyLogRepository>();
+
 
 // Serviços (Camada de Aplicação)
 builder.Services.AddScoped<FleetService>();

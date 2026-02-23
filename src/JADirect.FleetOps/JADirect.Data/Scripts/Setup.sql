@@ -67,3 +67,8 @@ ALTER TABLE vehicles
 
 -- Indice para melhorar a performance do relatório 
 CREATE INDEX idx_vehicle_last_check ON vehicles(last_walkaround_at);
+
+
+-- Adicionando a coluna de odômetro como opcional (pode ser NULL)
+ALTER TABLE daily_logs
+    ADD COLUMN current_odometer INT NULL AFTER returns;

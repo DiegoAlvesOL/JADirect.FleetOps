@@ -18,5 +18,5 @@ public class DailyLog
     /// </summary>
     public int? CurrentOdometer { get; set; } 
     
-    public string? Observation { get; set; }
+    public string? Notes { get; set; }
 }
