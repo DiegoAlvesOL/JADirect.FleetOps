@@ -78,4 +78,48 @@ public class DailyLogRepository
         }
         return logs;
     }
+
+    /// <summary>
+    /// Realiza a soma agregada de produtividade em um período específico.
+    /// Esta função é consumida pelo ManagerController para alimentar os KPIs de topo.
+    /// </summary>
+    /// <param name="startDate">Data inicial da busca.</param>
+    /// <param name="endDate">Data final da busca.</param>
+    /// <returns>Objeto PerformanceReportViewModel preenchido com os totais.</returns>
+    public PerformanceReportViewModel GetDashboardTotals(DateTime startDate, DateTime endDate)
+    {
+        var report = new PerformanceReportViewModel
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+        };
+
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+
+        const string sql = @"
+            SELECT
+                SUM(deliveries) as total_deliveries,
+                SUM(collections) as total_collections,
+                SUM(returns) as total_returns,
+                (MAX(current_odometer) - MIN(current_odometer)) as total_km
+            FROM daily_logs
+            WHERE log_date BETWEEN @startDate AND @endDate";
+
+        using var command = new MySqlCommand(sql, connection);
+        
+        command.Parameters.AddWithValue("@startDate", startDate.Date);
+        command.Parameters.AddWithValue("@endDate", endDate.Date.AddDays(1).AddTicks(-1));
+        
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        
+        if (reader.Read())
+        {
+            report.TotalDeliveries = reader["total_deliveries"] != DBNull.Value ? Convert.ToInt32(reader["total_deliveries"]) : 0;
+            report.TotalCollections = reader["total_collections"] != DBNull.Value ? Convert.ToInt32(reader["total_collections"]) : 0;
+            report.TotalReturns = reader["total_returns"] != DBNull.Value ? Convert.ToInt32(reader["total_returns"]) : 0;
+            report.TotalKmTraveled = reader["total_km"] != DBNull.Value ? Convert.ToInt32(reader["total_km"]) : 0;
+        }
+        return report;
+    }
 }

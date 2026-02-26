@@ -1,0 +1,36 @@
+@model JADirect.Domain.Models.PerformanceReportViewModel
+
+@{
+    ViewData["Title"] = "Manager Dashboard";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Dashboard de Produtividade</h2>
+
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted">Entregas Realizadas</h6>
+                    <h1 class="display-4 font-weight-bold">@Model.TotalDeliveries</h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted">Coletas Realizadas</h6>
+                    <h1 class="display-4 font-weight-bold">@Model.TotalCollections</h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted">Retornos (Insucessos)</h6>
+                    <h1 class="display-4 font-weight-bold text-danger">@Model.TotalReturns</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
