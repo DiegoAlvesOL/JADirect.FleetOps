@@ -8,6 +8,7 @@ namespace JADirect.Data.Repositories;
 
 /// <summary>
 /// Repositório especializado na persistência de dados de produtividade diária (Daily Logs).
+/// Centraliza operações de inserção, histórico e relatórios gerenciais de agregação.
 /// </summary>
 public class DailyLogRepository
 {
