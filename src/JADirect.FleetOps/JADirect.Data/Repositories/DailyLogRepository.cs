@@ -122,4 +122,97 @@ public class DailyLogRepository
         }
         return report;
     }
+
+
+    /// <summary>
+    /// Obtém a performance detalhada e o ranking de motoristas para o dashboard.
+    /// Realiza JOINS entre daily_logs, users e vehicles.
+    /// </summary>
+    /// <param name="report"></param>
+    public void FillDashboardDetails(PerformanceReportViewModel report)
+    {
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+        connection.Open();
+
+        const string sqlRanking = @"
+            SELECT
+                CONCAT(u.first_name, ' ', u.surname) as driver_name,
+                v.vehicle_type_id,
+                v.registration_no,
+                SUM(dl.deliveries) as total_deliveries,
+                SUM(dl.collections) as total_collections,
+                SUM(dl.returns) as total_returns
+            FROM daily_logs dl
+            INNER JOIN users u ON dl.user_id = u.id
+            INNER JOIN vehicles v ON dl.vehicle_id = v.id
+            WHERE dl.log_date BETWEEN @start AND @end
+            GROUP BY u.id, v.vehicle_type_id, v.registration_no
+            ORDER BY total_deliveries DESC";
+        
+        using var commandRanking = new MySqlCommand(sqlRanking, connection);
+        commandRanking.Parameters.AddWithValue("@start", report.StartDate.Date);
+        commandRanking.Parameters.AddWithValue("@end", report.EndDate.Date.AddDays(1).AddTicks(-1));
+
+        using var readerRanking = commandRanking.ExecuteReader();
+        while (readerRanking.Read())
+        {
+            report.DriverRanking.Add(new VehiclePerformanceSummary
+            {
+                DriverName = readerRanking["driver_name"].ToString() ?? "",
+                VehicleType = readerRanking["vehicle_type_id"].ToString() ?? "",
+                RegistrationNo = readerRanking["registration_no"].ToString() ?? "",
+                Deliveries = Convert.ToInt32(readerRanking["total_deliveries"]),
+                Collections = Convert.ToInt32(readerRanking["total_collections"]),
+                Returns = Convert.ToInt32(readerRanking["total_returns"])
+            });
+        }
+        readerRanking.Close();
+
+        string sqlDetails = @"
+            SELECT
+                dl.log_date,
+                CONCAT(u.first_name, ' ', u.surname) as driver_name,
+                v.vehicle_type_id,
+                v.registration_no,
+                dl.deliveries,
+                dl.collections,
+                dl.returns
+            FROM daily_logs dl
+            INNER JOIN users u ON dl.user_id = u.id
+            INNER JOIN vehicles v ON dl.vehicle_id = v.id
+            WHERE dl.log_date BETWEEN @start AND @end";
+
+        if (!string.IsNullOrEmpty(report.DriverSearch))
+        {
+            sqlDetails = sqlDetails + " HAVING driver_name LIKE @search";
+        }
+
+        sqlDetails = sqlDetails + " ORDER BY dl.log_date DESC";
+
+        using var commandDetails = new MySqlCommand(sqlDetails, connection);
+        commandDetails.Parameters.AddWithValue("@start", report.StartDate.Date);
+        commandDetails.Parameters.AddWithValue("@end", report.EndDate.Date.AddDays(1).AddTicks(-1));
+
+        if (!string.IsNullOrEmpty(report.DriverSearch))
+        {
+            commandDetails.Parameters.AddWithValue("@search", $"%{report.DriverSearch}%");
+        }
+
+        using var readerDetails = commandDetails.ExecuteReader();
+        while (readerDetails.Read())
+        {
+            report.DetailedLogs.Add(new DailyLogDetailItem
+            {
+                LogDate = Convert.ToDateTime(readerDetails["log_date"]),
+                DriverName = readerDetails["driver_name"].ToString() ?? "",
+                VehicleType = readerDetails["vehicle_type_id"].ToString() ?? "",
+                RegistrationNo = readerDetails["registration_no"].ToString() ?? "",
+                Deliveries = Convert.ToInt32(readerDetails["deliveries"]),
+                Collections = Convert.ToInt32(readerDetails["collections"]),
+                Returns = Convert.ToInt32(readerDetails["returns"])
+            });
+        }
+    }
+    
+    
 }

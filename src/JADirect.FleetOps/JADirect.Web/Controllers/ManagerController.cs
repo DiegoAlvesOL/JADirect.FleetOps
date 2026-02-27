@@ -23,21 +23,28 @@ public class ManagerController : Controller
         _dailyLogRepository = dailyLogRepository;
     }
 
+
     /// <summary>
-    ///Renderiza a visão principal do dashboard gerencial com os KPIs consolidados.
-    /// Caso as datas não sejam informadas, utiliza o padrão de 7 dias.
+    /// Renderiza a visão principal do dashboard gerencial.
+    /// Consolida KPIs de topo, ranking de performance e auditoria de logs em uma única chamada.
     /// </summary>
-    /// <param name="start">Data de início do filtro.</param>
-    /// <param name="end">Data de fim do filtro.</param>
-    /// <returns></returns>
+    /// <param name="start">Data de início do filtro (Opcional).</param>
+    /// <param name="end">Data de fim do filtro (Opcional).</param>
+    /// <param name="driverName">Nome para filtro de busca textual (Opcional).</param>
+    /// <returns>View com o modelo PerformanceReportViewModel preenchido.</returns>
     [HttpGet]
-    public IActionResult Index(DateTime? start, DateTime? end)
+    public IActionResult Index(DateTime? start, DateTime? end, string? driverName)
     {
         DateTime startDate = start ?? DateTime.Now.AddDays(-7);
         DateTime endDate = end ?? DateTime.Now;
-        
+
         var report = _dailyLogRepository.GetDashboardTotals(startDate, endDate);
+
+        report.DriverSearch = driverName;
+        
+        _dailyLogRepository.FillDashboardDetails(report);
         
         return View(report);
     }
+    
 }

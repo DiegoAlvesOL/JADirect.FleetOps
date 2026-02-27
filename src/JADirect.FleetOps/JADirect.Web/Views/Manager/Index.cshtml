@@ -1,36 +1,89 @@
-@model JADirect.Domain.Models.PerformanceReportViewModel
+<form asp-action="Index" method="get" class="card p-3 bg-light mb-4">
+    <div class="row align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Data Início</label>
+            <input type="date" name="start" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Data Fim</label>
+            <input type="date" name="end" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Motorista</label>
+            <input type="text" name="driverName" value="@Model.DriverSearch" class="form-control" placeholder="Buscar motorista..." />
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            <a href="@Url.Action("Index")" class="btn btn-secondary">Resetar</a>
+        </div>
+    </div>
+</form>
 
-@{
-    ViewData["Title"] = "Manager Dashboard";
-}
-
-<div class="container-fluid mt-4">
-    <h2 class="mb-4">Dashboard de Produtividade</h2>
-
-    <div class="row text-center">
-        <div class="col-md-4">
-            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted">Entregas Realizadas</h6>
-                    <h1 class="display-4 font-weight-bold">@Model.TotalDeliveries</h1>
-                </div>
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><strong>Performance por Motorista</strong></div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Veículo</th>
+                            <th>Entr.</th>
+                            <th>Col.</th>
+                            <th>Ret.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.DriverRanking) {
+                            <tr>
+                                <td>@item.DriverName</td>
+                                <td><small class="badge bg-info text-dark">@item.VehicleType</small> @item.RegistrationNo</td>
+                                <td>@item.Deliveries</td>
+                                <td>@item.Collections</td>
+                                <td>@item.Returns</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted">Coletas Realizadas</h6>
-                    <h1 class="display-4 font-weight-bold">@Model.TotalCollections</h1>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-dark text-white shadow-sm" style="border-radius: 15px; border: 1px solid #333;">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted">Retornos (Insucessos)</h6>
-                    <h1 class="display-4 font-weight-bold text-danger">@Model.TotalReturns</h1>
-                </div>
-            </div>
-        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="alert alert-secondary">Espaço reservado para Alertas de Compliance (Próxima Aula).</div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Detalhamento de Logs (Auditoria)</strong>
+        <button class="btn btn-sm btn-outline-success">Exportar Excel (Em breve)</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Motorista</th>
+                    <th>Placa</th>
+                    <th>Entregas</th>
+                    <th>Coletas</th>
+                    <th>Retornos</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model.DetailedLogs) {
+                    <tr>
+                        <td>@log.LogDate.ToShortDateString()</td>
+                        <td>@log.DriverName</td>
+                        <td>@log.RegistrationNo</td>
+                        <td>@log.Deliveries</td>
+                        <td>@log.Collections</td>
+                        <td>@log.Returns</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
