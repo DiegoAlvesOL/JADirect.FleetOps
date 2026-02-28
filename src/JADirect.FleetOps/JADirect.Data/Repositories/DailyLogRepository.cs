@@ -6,10 +6,6 @@ using MySql.Data.MySqlClient;
 
 namespace JADirect.Data.Repositories;
 
-/// <summary>
-/// Repositório especializado na persistência de dados de produtividade diária (Daily Logs).
-/// Centraliza operações de inserção, histórico e relatórios gerenciais de agregação.
-/// </summary>
 public class DailyLogRepository
 {
     private readonly DbConnectionFactory _connectionFactory;
@@ -19,9 +15,6 @@ public class DailyLogRepository
         _connectionFactory = connectionFactory;
     }
 
-    /// <summary>
-    /// Realiza a inserção de um novo registro de DailyLog na tabela 'daily_logs'.
-    /// </summary>
     public void Add(DailyLog log)
     {
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
@@ -43,9 +36,6 @@ public class DailyLogRepository
         command.ExecuteNonQuery();
     }
 
-    /// <summary>
-    /// Busca os registros recentes mapeados para a classe RecentActivityItem.
-    /// </summary>
     public List<RecentActivityItem> GetRecentLogs(int userId, int limit = 5)
     {
         var logs = new List<RecentActivityItem>();
@@ -79,18 +69,9 @@ public class DailyLogRepository
         return logs;
     }
 
-    /// <summary>
-    /// Realiza a soma agregada de produtividade em um período específico.
-    /// Esta função é consumida pelo ManagerController para alimentar os KPIs de topo.
-    /// </summary>
     public PerformanceReportViewModel GetDashboardTotals(DateTime startDate, DateTime endDate)
     {
-        var report = new PerformanceReportViewModel
-        {
-            StartDate = startDate,
-            EndDate = endDate,
-        };
-
+        var report = new PerformanceReportViewModel { StartDate = startDate, EndDate = endDate };
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
 
         const string sql = @"
@@ -103,13 +84,11 @@ public class DailyLogRepository
             WHERE log_date BETWEEN @startDate AND @endDate";
 
         using var command = new MySqlCommand(sql, connection);
-        
         command.Parameters.AddWithValue("@startDate", startDate.Date);
         command.Parameters.AddWithValue("@endDate", endDate.Date.AddDays(1).AddTicks(-1));
         
         connection.Open();
         using var reader = command.ExecuteReader();
-        
         if (reader.Read())
         {
             report.TotalDeliveries = reader["total_deliveries"] != DBNull.Value ? Convert.ToInt32(reader["total_deliveries"]) : 0;
@@ -120,9 +99,6 @@ public class DailyLogRepository
         return report;
     }
 
-    /// <summary>
-    /// Obtém a performance detalhada e o ranking de motoristas para o dashboard.
-    /// </summary>
     public void FillDashboardDetails(PerformanceReportViewModel report)
     {
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
@@ -147,20 +123,21 @@ public class DailyLogRepository
         commandRanking.Parameters.AddWithValue("@start", report.StartDate.Date);
         commandRanking.Parameters.AddWithValue("@end", report.EndDate.Date.AddDays(1).AddTicks(-1));
 
-        using var readerRanking = commandRanking.ExecuteReader();
-        while (readerRanking.Read())
+        using (var readerRanking = commandRanking.ExecuteReader())
         {
-            report.DriverRanking.Add(new VehiclePerformanceSummary
+            while (readerRanking.Read())
             {
-                DriverName = readerRanking["driver_name"].ToString() ?? "",
-                VehicleType = readerRanking["vehicle_type_id"].ToString() ?? "",
-                RegistrationNo = readerRanking["registration_no"].ToString() ?? "",
-                Deliveries = Convert.ToInt32(readerRanking["total_deliveries"]),
-                Collections = Convert.ToInt32(readerRanking["total_collections"]),
-                Returns = Convert.ToInt32(readerRanking["total_returns"])
-            });
+                report.DriverRanking.Add(new VehiclePerformanceSummary
+                {
+                    DriverName = readerRanking["driver_name"].ToString() ?? "",
+                    VehicleType = readerRanking["vehicle_type_id"].ToString() ?? "",
+                    RegistrationNo = readerRanking["registration_no"].ToString() ?? "",
+                    Deliveries = Convert.ToInt32(readerRanking["total_deliveries"]),
+                    Collections = Convert.ToInt32(readerRanking["total_collections"]),
+                    Returns = Convert.ToInt32(readerRanking["total_returns"])
+                });
+            }
         }
-        readerRanking.Close();
 
         string sqlDetails = @"
             SELECT
@@ -178,15 +155,13 @@ public class DailyLogRepository
 
         if (!string.IsNullOrEmpty(report.DriverSearch))
         {
-            sqlDetails = sqlDetails + " HAVING driver_name LIKE @search";
+            sqlDetails += " HAVING driver_name LIKE @search";
         }
-
-        sqlDetails = sqlDetails + " ORDER BY dl.log_date DESC";
+        sqlDetails += " ORDER BY dl.log_date DESC";
 
         using var commandDetails = new MySqlCommand(sqlDetails, connection);
         commandDetails.Parameters.AddWithValue("@start", report.StartDate.Date);
         commandDetails.Parameters.AddWithValue("@end", report.EndDate.Date.AddDays(1).AddTicks(-1));
-
         if (!string.IsNullOrEmpty(report.DriverSearch))
         {
             commandDetails.Parameters.AddWithValue("@search", $"%{report.DriverSearch}%");
@@ -195,23 +170,10 @@ public class DailyLogRepository
         using var readerDetails = commandDetails.ExecuteReader();
         while (readerDetails.Read())
         {
-            report.DetailedLogs.Add(new DailyLogDetailItem
-            {
-                LogDate = Convert.ToDateTime(readerDetails["log_date"]),
-                DriverName = readerDetails["driver_name"].ToString() ?? "",
-                VehicleType = readerDetails["vehicle_type_id"].ToString() ?? "",
-                RegistrationNo = readerDetails["registration_no"].ToString() ?? "",
-                Deliveries = Convert.ToInt32(readerDetails["deliveries"]),
-                Collections = Convert.ToInt32(readerDetails["collections"]),
-                Returns = Convert.ToInt32(readerDetails["returns"])
-            });
+            report.DetailedLogs.Add(MapDailyLogDetailFromReader(readerDetails));
         }
     }
 
-    /// <summary>
-    /// Identifica motoristas ativos que não enviaram logs na data atual.
-    /// Visão: Pending Daily Logs.
-    /// </summary>
     public void FillComplianceExceptions(PerformanceReportViewModel report)
     {
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
@@ -239,17 +201,11 @@ public class DailyLogRepository
         }
     }
 
-    /// <summary>
-    /// Recupera a frota com a informação do último motorista que realizou a inspeção.
-    /// Retorna uma lista de tuplas para evitar alteração na classe de domínio Vehicle.
-    /// Chamado pelo ManagerController.Index.
-    /// </summary>
     public List<(Vehicle Vehicle, string LastDriver)> GetAllVehiclesForComplianceCheck()
     {
         var data = new List<(Vehicle Vehicle, string LastDriver)>();
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
 
-        // Subquery baseada no seu user_id para buscar o nome do motorista do último check
         const string sql = @"
             SELECT 
                 v.id, v.registration_no, v.manufacturer, v.model, 
@@ -276,11 +232,26 @@ public class DailyLogRepository
                 Status = (VehicleStatus)Convert.ToInt32(reader["status_id"]),
                 LastWalkaroundAt = reader["last_walkaround_at"] != DBNull.Value ? Convert.ToDateTime(reader["last_walkaround_at"]) : null
             };
-
             string driverName = reader["last_driver"] != DBNull.Value ? reader["last_driver"].ToString() : "No driver recorded";
-            
             data.Add((vehicle, driverName));
         }
         return data;
+    }
+
+    /// <summary>
+    /// Helper Privado para evitar duplicação da lógica de mapeamento de detalhes.
+    /// </summary>
+    private DailyLogDetailItem MapDailyLogDetailFromReader(MySqlDataReader reader)
+    {
+        return new DailyLogDetailItem
+        {
+            LogDate = Convert.ToDateTime(reader["log_date"]),
+            DriverName = reader["driver_name"].ToString() ?? "",
+            VehicleType = reader["vehicle_type_id"].ToString() ?? "",
+            RegistrationNo = reader["registration_no"].ToString() ?? "",
+            Deliveries = Convert.ToInt32(reader["deliveries"]),
+            Collections = Convert.ToInt32(reader["collections"]),
+            Returns = Convert.ToInt32(reader["returns"])
+        };
     }
 }
