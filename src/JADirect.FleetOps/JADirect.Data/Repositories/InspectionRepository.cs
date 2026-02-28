@@ -133,4 +133,43 @@ public class InspectionRepository
         var result = command.ExecuteScalar();
         return result == DBNull.Value ? null : (DateTime?)result;
     }
+
+    public List<WalkaroundHistoryViewModel> GetAllHistory()
+    {
+        var historyList = new List<WalkaroundHistoryViewModel>();
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sqlWalkHistory = @"
+                SELECT
+                    wc.check_date, u.first_name, u.surname, v.registration_no,
+                    wc.odometer, wc.has_defect, wc.defect_notes,  wc.latitude, wc.longitude
+                FROM walkaround_checks wc
+                INNER JOIN users u ON wc.user_id = u.id
+                INNER JOIN vehicles v ON wc.vehicle_id = v.id
+                ORDER BY wc.check_date DESC";
+
+            using (var command = new MySqlCommand(sqlWalkHistory, (MySqlConnection)connection))
+            {
+                connection.Open();
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        historyList.Add(new WalkaroundHistoryViewModel
+                        {
+                            CheckDate = Convert.ToDateTime(reader["check_date"]),
+                            DriverName = string.Format("{0} {1}", reader["first_name"], reader["surname"]),
+                            RegistrationNo = reader["registration_no"].ToString(),
+                            Odometer = Convert.ToInt32(reader["odometer"]),
+                            hasDefect = Convert.ToBoolean(reader["has_defect"]),
+                            DefectNotes = reader["defect_notes"]?.ToString(),
+                            Latitude = reader["latitude"] != DBNull.Value ? Convert.ToDecimal(reader["latitude"]) : null,
+                            Longitude = reader["longitude"] != DBNull.Value ? Convert.ToDecimal(reader["longitude"]) : null,
+                        });
+                    }
+                }
+            }
+        }
+        return historyList;
+    }
 }

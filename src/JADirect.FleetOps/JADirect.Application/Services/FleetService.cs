@@ -55,12 +55,12 @@ public class FleetService
         // Regra para VANS: Ciclo de renovação de 7 dias
         if (vehicleType == VehicleType.Van)
         {
-            if (daysSince <= 5) // Verde: 2 ou mais dias para expirar
+            if (daysSince < 5)
             {
                 return SetStatus(viewModel, "Green", true, "Walkaround check compliant");
             }
 
-            if (daysSince == 6) // Amarelo: Falta 1 dia para expirar
+            if (daysSince == 5)
             {
                 return SetStatus(viewModel, "Yellow", true, "walkaround check expires tomorrow");
             }

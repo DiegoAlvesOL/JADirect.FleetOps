@@ -1,5 +1,7 @@
 using System.Text.Json;
 using JADirect.Data.Repositories;
+using JADirect.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JADirect.Web.Controllers;
@@ -77,21 +79,31 @@ public class WalkaroundController : Controller
     }
 
     /// <summary>
-    /// Exibe o histórico de auditoria para o veículo atualmente selecionado na sessão.
+    /// Exibe o histórico de inspeções para auditoria. Acesso exclusivo para Managers.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="id">O ID do veículo (opcional). Se nulo, exibe o histórico de toda a frota.</param>
+    [Authorize(Roles = "Manager")]
     [HttpGet]
-    public IActionResult History()
+    public IActionResult History(int? id)
     {
-        int? vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId");
-        if (!vehicleId.HasValue)
+        List<WalkaroundHistoryViewModel> historyData;
+
+        if (id.HasValue)
         {
-            return RedirectToAction("SelectVehicle", "Home");
+            // Caso o Manager tenha clicado em um veículo específico no Dashboard
+            historyData = _inspectionRepository.GetHistoryByVehicleId(id.Value);
+        
+            var vehicle = _vehicleRepository.GetById(id.Value);
+            ViewBag.RegistrationNo = vehicle != null ? vehicle.RegistrationNo : "Selected Vehicle";
+        }
+        else
+        {
+            // Caso o Manager acesse o menu lateral "History" sem filtro prévio
+            historyData = _inspectionRepository.GetAllHistory();
+            ViewBag.RegistrationNo = "All Fleet Vehicles";
         }
 
-        var history = _inspectionRepository.GetHistoryByVehicleId(vehicleId.Value);
-        ViewBag.RegistrationNo = HttpContext.Session.GetString("SelectedVehicleRegistrationNo");
-        
-        return View(history);
+        // Retornamos a View tipada com a lista, sem redirecionamentos para 'SelectVehicle'
+        return View(historyData);
     }
 }

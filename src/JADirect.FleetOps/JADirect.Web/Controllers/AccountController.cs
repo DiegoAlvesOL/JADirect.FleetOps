@@ -51,7 +51,7 @@ public class AccountController : Controller
 
         if (user.Role == UserRoles.Manager)
         {
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Manager");
         }
 
         return RedirectToAction("SelectVehicle", "Driver");

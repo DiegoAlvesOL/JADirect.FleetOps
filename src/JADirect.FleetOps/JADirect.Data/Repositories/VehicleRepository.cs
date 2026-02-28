@@ -200,4 +200,32 @@ public class VehicleRepository
             }
         }
     }
+
+    public JADirect.Domain.Entities.Vehicle? GetById(int vehicleId)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "SELECT * FROM vehicles WHERE id = @VehicleId";
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                var parameterVehicleId = command.CreateParameter();
+                parameterVehicleId.ParameterName = "@VehicleId";
+                parameterVehicleId.Value = vehicleId;
+                command.Parameters.Add(parameterVehicleId);
+
+                connection.Open();
+                using (var reader = (System.Data.Common.DbDataReader)command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return MapVehicleFromReader(reader);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
 }

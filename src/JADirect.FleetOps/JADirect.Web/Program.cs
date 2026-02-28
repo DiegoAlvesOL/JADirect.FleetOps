@@ -1,6 +1,6 @@
 using JADirect.Application.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using JADirect.Data.Repositories; // Namespace dos repositórios
+using JADirect.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 

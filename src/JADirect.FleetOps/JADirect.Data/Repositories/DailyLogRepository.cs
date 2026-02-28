@@ -1,7 +1,7 @@
-using System.Data;
 using JADirect.Data.Infrastructure;
 using JADirect.Domain.Entities;
-using JADirect.Domain.Models; // Importante para usar o RecentActivityItem
+using JADirect.Domain.Enums;
+using JADirect.Domain.Models;
 using MySql.Data.MySqlClient;
 
 namespace JADirect.Data.Repositories;
@@ -83,9 +83,6 @@ public class DailyLogRepository
     /// Realiza a soma agregada de produtividade em um período específico.
     /// Esta função é consumida pelo ManagerController para alimentar os KPIs de topo.
     /// </summary>
-    /// <param name="startDate">Data inicial da busca.</param>
-    /// <param name="endDate">Data final da busca.</param>
-    /// <returns>Objeto PerformanceReportViewModel preenchido com os totais.</returns>
     public PerformanceReportViewModel GetDashboardTotals(DateTime startDate, DateTime endDate)
     {
         var report = new PerformanceReportViewModel
@@ -123,12 +120,9 @@ public class DailyLogRepository
         return report;
     }
 
-
     /// <summary>
     /// Obtém a performance detalhada e o ranking de motoristas para o dashboard.
-    /// Realiza JOINS entre daily_logs, users e vehicles.
     /// </summary>
-    /// <param name="report"></param>
     public void FillDashboardDetails(PerformanceReportViewModel report)
     {
         using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
@@ -213,6 +207,80 @@ public class DailyLogRepository
             });
         }
     }
+
+    /// <summary>
+    /// Identifica motoristas ativos que não enviaram logs na data atual.
+    /// Visão: Pending Daily Logs.
+    /// </summary>
+    public void FillComplianceExceptions(PerformanceReportViewModel report)
+    {
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+        connection.Open();
+
+        const string sqlMissingLogs = @"
+        SELECT CONCAT_WS(' ', u.first_name, u.surname) as full_name
+            FROM users u
+        LEFT JOIN daily_logs dl ON u.id = dl.user_id AND DATE(dl.log_date) = CURDATE()
+        WHERE u.role_id IN (2, 3)
+            AND u.status_id = 1
+            AND dl.id IS NULL
+        ORDER BY u.first_name ASC";
     
-    
+        using var commandLogs = new MySqlCommand(sqlMissingLogs, connection);
+        using var readerLogs = commandLogs.ExecuteReader();
+        while (readerLogs.Read())
+        {
+            report.PendingDailyLogs.Add(new ComplianceExceptionViewModel
+            {
+                DriverName = readerLogs["full_name"].ToString() ?? "",
+                Message = "No data received today",
+                Severity = "warning"
+            });
+        }
+    }
+
+    /// <summary>
+    /// Recupera a frota com a informação do último motorista que realizou a inspeção.
+    /// Retorna uma lista de tuplas para evitar alteração na classe de domínio Vehicle.
+    /// Chamado pelo ManagerController.Index.
+    /// </summary>
+    public List<(Vehicle Vehicle, string LastDriver)> GetAllVehiclesForComplianceCheck()
+    {
+        var data = new List<(Vehicle Vehicle, string LastDriver)>();
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+
+        // Subquery baseada no seu user_id para buscar o nome do motorista do último check
+        const string sql = @"
+            SELECT 
+                v.id, v.registration_no, v.manufacturer, v.model, 
+                v.vehicle_type_id, v.current_km, v.status_id, v.last_walkaround_at,
+                (SELECT CONCAT(u.first_name, ' ', u.surname) 
+                 FROM walkaround_checks wc 
+                 INNER JOIN users u ON wc.user_id = u.id 
+                 WHERE wc.vehicle_id = v.id 
+                 ORDER BY wc.check_date DESC LIMIT 1) as last_driver
+            FROM vehicles v
+            WHERE v.status_id != 3";
+        
+        using var command = new MySqlCommand(sql, connection);
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var vehicle = new Vehicle {
+                Id = Convert.ToInt32(reader["id"]),
+                RegistrationNo = reader["registration_no"].ToString() ?? "",
+                Manufacturer = reader["manufacturer"].ToString() ?? "",
+                Model = reader["model"].ToString() ?? "",
+                VehicleType = (VehicleType)Convert.ToInt32(reader["vehicle_type_id"]),
+                Status = (VehicleStatus)Convert.ToInt32(reader["status_id"]),
+                LastWalkaroundAt = reader["last_walkaround_at"] != DBNull.Value ? Convert.ToDateTime(reader["last_walkaround_at"]) : null
+            };
+
+            string driverName = reader["last_driver"] != DBNull.Value ? reader["last_driver"].ToString() : "No driver recorded";
+            
+            data.Add((vehicle, driverName));
+        }
+        return data;
+    }
 }

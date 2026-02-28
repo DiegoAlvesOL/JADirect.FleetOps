@@ -27,6 +27,18 @@ public class PerformanceReportViewModel
     public List<DailyLogDetailItem> DetailedLogs { get; set; } = new();
     
     /// <summary>
+    /// Lista para alertas de compliance e avisos
+    /// </summary>
+    public List<ComplianceExceptionViewModel> PendingDailyLogs { get; set; } = new();
+    public List<ComplianceExceptionViewModel> PendingWalkarounds { get; set; } = new();
+
+
+    /// <summary>
+    /// Lista para armazenar veículos que estão com a inspeção próxima do vencimento.
+    /// </summary>
+    public List<ComplianceExceptionViewModel> ExpiringInspections { get; set; } = new();
+    
+    /// <summary>
     /// Propriedade calculada: Soma todas as ações e divide pela distância.
     /// Define a "eficiência" que será exibida no topo do dashboard.
     /// </summary>
@@ -47,6 +59,9 @@ public class VehiclePerformanceSummary
     public int Deliveries { get; set; }
     public int Collections { get; set; }
     public int Returns { get; set; }
+    
+    public string VehicleTypeDisplayName => int.TryParse(VehicleType, out int id) ?
+        ((JADirect.Domain.Enums.VehicleType)id).ToString() : "N/A";
 }
 
 
@@ -60,4 +75,7 @@ public class DailyLogDetailItem
     public int Collections { get; set; }
     public int Returns { get; set; }
     public string Notes { get; set; } = string.Empty;
+    
+    public string VehicleTypeDisplayName => int.TryParse(VehicleType, out int id) ? 
+        ((JADirect.Domain.Enums.VehicleType)id).ToString() : "N/A";
 }

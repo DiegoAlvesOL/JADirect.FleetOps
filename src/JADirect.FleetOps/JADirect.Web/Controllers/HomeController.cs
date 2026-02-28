@@ -29,7 +29,7 @@ public class HomeController : Controller
         // 1. Redirecionamento baseado no papel do usuário
         if (User.IsInRole("Manager"))
         {
-            return View("ManagerDashboard");
+            return RedirectToAction("Index", "Manager");
         }
         
         // 2. Verificação de Sessão (Redireciona para seleção se a sessão expirou ou não existe)
