@@ -18,23 +18,47 @@
             -webkit-backdrop-filter: blur(10px);
         }
 
+        /* Estilo moderno para os Dropdowns */
         .dropdown-menu {
             border-radius: 12px;
             border: none;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             padding: 0.5rem;
-            min-width: 200px;
+            min-width: 220px;
+            margin-top: 10px !important;
         }
 
         .dropdown-item {
             border-radius: 8px;
-            padding: 0.6rem 1rem;
-            transition: all 0.2s;
+            padding: 0.7rem 1rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
         }
 
         .dropdown-item:hover {
             background-color: #f0fdfa;
             color: #0d9488;
+            transform: translateX(5px);
+        }
+
+        /* Efeito de botão revelado no Hover dos links principais */
+        .nav-link-custom {
+            position: relative;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            color: rgba(240, 253, 250, 0.9);
+            text-decoration: none;
+        }
+
+        .nav-link-custom:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
         }
 
         .dropdown-toggle::after {
@@ -48,18 +72,43 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
 
-                <div class="flex items-center space-x-8">
-                    <a asp-controller="Home" asp-action="Index" class="flex items-center no-underline">
+                <div class="flex items-center space-x-6">
+                    <a asp-controller="Home" asp-action="Index" class="flex items-center no-underline mr-4">
                         <img src="~/images/logo-white.png" alt="JA Direct Logo" class="h-10 w-auto object-contain" />
                     </a>
 
                     @if (User.Identity.IsAuthenticated && User.IsInRole("Manager"))
                     {
-                    <div class="hidden md:flex space-x-4">
-                        <a asp-controller="Manager" asp-action="Index" class="text-teal-50 hover:text-white no-underline text-sm font-medium">Dashboard</a>
-                        <a asp-controller="Walkaround" asp-action="History" class="text-teal-50 hover:text-white no-underline text-sm font-medium">Audit History</a>
-                        <a asp-controller="Vehicles" asp-action="Index" class="text-teal-50 hover:text-white no-underline text-sm font-medium">Vehicles</a>
-                        <a asp-controller="Users" asp-action="Index" class="text-teal-50 hover:text-white no-underline text-sm font-medium">Users</a>
+                    <div class="hidden md:flex items-center space-x-2">
+                        <a asp-controller="Manager" asp-action="Index" class="nav-link-custom">
+                            <i class="ri-dashboard-3-line mr-2 text-teal-200"></i>
+                            <span class="text-sm font-semibold">Dashboard</span>
+                        </a>
+
+                        <div class="dropdown">
+                            <a href="#" class="nav-link-custom dropdown-toggle" id="fleetMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="ri-truck-line mr-2 text-teal-200"></i>
+                                <span class="text-sm font-semibold">Fleet Manager</span>
+                                <i class="ri-arrow-down-s-line ml-1 text-teal-300"></i>
+                            </a>
+                            <ul class="dropdown-menu animate-in fade-in slide-in-from-top-2" aria-labelledby="fleetMenu">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Vehicles" asp-action="Index">
+                                        <i class="ri- Steer-line mr-3 text-teal-600"></i> Vehicles Fleet
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Walkaround" asp-action="History">
+                                        <i class="ri-shield-check-line mr-3 text-teal-600"></i> Audit History
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <a asp-controller="Users" asp-action="Index" class="nav-link-custom">
+                            <i class="ri-group-line mr-2 text-teal-200"></i>
+                            <span class="text-sm font-semibold">Team</span>
+                        </a>
                     </div>
                     }
                 </div>
@@ -84,36 +133,22 @@
                             </div>
                         </button>
 
-                        <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="userMenu">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
                             <li>
                                 <div class="px-4 py-2 border-bottom mb-2 bg-slate-50 rounded-t-lg">
                                     <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter mb-0">Logged as</p>
                                     <p class="text-sm font-bold text-teal-800">@User.Identity.Name</p>
                                 </div>
                             </li>
-                            @if (User.IsInRole("Manager"))
-                            {
                             <li>
-                                <a class="dropdown-item flex items-center text-slate-700" asp-controller="Users" asp-action="Index">
-                                    <i class="ri-group-line mr-2 text-teal-600"></i> Manage Users
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item flex items-center text-slate-700" asp-controller="Vehicles" asp-action="Index">
-                                    <i class="ri-truck-line mr-2 text-teal-600"></i> Manage Vehicles
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider mx-2"></li>
-                            }
-                            <li>
-                                <a class="dropdown-item flex items-center text-slate-700" href="#">
-                                    <i class="ri-lock-password-line mr-2 text-teal-600"></i> Change Password
+                                <a class="dropdown-item text-slate-700" href="#">
+                                    <i class="ri-lock-password-line mr-3 text-teal-600"></i> Password
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider mx-2"></li>
                             <li>
-                                <a class="dropdown-item flex items-center text-red-600 font-bold" asp-controller="Account" asp-action="Logout">
-                                    <i class="ri-logout-box-r-line mr-2"></i> Sign Out
+                                <a class="dropdown-item text-red-600 font-bold" asp-controller="Account" asp-action="Logout">
+                                    <i class="ri-logout-box-r-line mr-3"></i> Sign Out
                                 </a>
                             </li>
                         </ul>
