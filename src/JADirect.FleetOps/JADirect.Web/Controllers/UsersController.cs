@@ -25,9 +25,9 @@ public class UsersController : Controller
     /// Função que lista todos os usuário por meio da função GetAll do UserRepository.cs
     /// </summary>
     /// <returns></returns>
-    public IActionResult Index()
+    public IActionResult Index(string? searchString)
     {
-        var users = _userRepository.GetAll();
+        var users = _userRepository.GetAll(searchString);
         return View(users);
     }
 

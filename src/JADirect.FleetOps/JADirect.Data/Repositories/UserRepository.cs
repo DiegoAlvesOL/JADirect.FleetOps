@@ -121,15 +121,34 @@ public class UserRepository
     /// Lista todos os usuário gravados no banco.
     /// </summary>
     /// <returns>Lista completa de usuários.</returns>
-    public List<User> GetAll()
+    public List<User> GetAll(string? search = null)
     {
         var users = new List<User>();
         using (var connection = _connectionFactory.CreateConnection())
         {
-            const string sql = "SELECT * FROM users ORDER BY first_name ASC";
+
+            var sql = "SELECT * FROM users WHERE 1=1";
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                sql = sql + " AND (first_name LIKE @search OR surname LIKE @search OR email LIKE @search)";
+            }
+            
+            sql = sql + " ORDER BY first_name ASC";
+            
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = sql;
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = "@search";
+                    
+                    parameter.Value = $"%{search}%";
+                    command.Parameters.Add(parameter);
+                }
+                
                 connection.Open();
                 using (var reader = (System.Data.Common.DbDataReader)command.ExecuteReader())
                 {
