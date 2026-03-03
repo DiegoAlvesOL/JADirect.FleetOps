@@ -182,4 +182,34 @@ public class UserRepository
         }
         
     }
+
+    /// <summary>
+    /// /// Busca um usuário específico utilizando a Primary Key da tabela 'users'.
+    /// </summary>
+    /// <param name="Id"></param>
+    /// <returns></returns>
+    public User GetById(int id)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "SELECT * FROM  users WHERE id = @Id";
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                AddParameter(command, "@Id", id);
+                
+                connection.Open();
+                using (var reader = (System.Data.Common.DbDataReader)command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return MapUserFromReader(reader);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
 }

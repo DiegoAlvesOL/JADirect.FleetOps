@@ -1,6 +1,7 @@
 using JADirect.Data.Repositories;
 using JADirect.Domain.Entities;
 using JADirect.Domain.Enums;
+using JADirect.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -115,4 +116,30 @@ public class UsersController : Controller
         return Ok();
     }
 
+
+    /// <summary>
+    /// /// Carrega os detalhes de um usuário para gestão administrativa.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpGet]
+    public IActionResult Manage(int id)
+    {
+        var user = _userRepository.GetById(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var viewModel = new UserManagementViewModel
+        {
+            UserId = user.Id,
+            FirstName = user.FirstName,
+            Surname = user.Surname,
+            Email = user.Email,
+            Role = user.Role,
+            Status = user.Status,
+        };
+        return View(viewModel);
+    }
 }
