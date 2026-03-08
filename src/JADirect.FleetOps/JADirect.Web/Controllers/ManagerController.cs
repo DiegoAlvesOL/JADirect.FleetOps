@@ -57,7 +57,7 @@ public class ManagerController : Controller
                 report.PendingWalkarounds.Add(new ComplianceExceptionViewModel {
                     VehicleId =  v.Id,
                     RegistrationNo = v.RegistrationNo,
-                    DriverName = lastDriver, // Preenche o motorista que causou o bloqueio
+                    DriverName = lastDriver,
                     Message = compliance.StatusMessage,
                     Severity = "danger"
                 });
@@ -66,8 +66,9 @@ public class ManagerController : Controller
             else if (compliance.StatusColor == "Red" || compliance.StatusColor == "Yellow")
             {
                 report.ExpiringInspections.Add(new ComplianceExceptionViewModel {
+                    VehicleId = v.Id,
                     RegistrationNo = v.RegistrationNo,
-                    DriverName = lastDriver, // Preenche o último motorista que inspecionou
+                    DriverName = lastDriver,
                     Message = compliance.StatusMessage,
                     Severity = compliance.StatusColor == "Red" ? "danger" : "warning"
                 });

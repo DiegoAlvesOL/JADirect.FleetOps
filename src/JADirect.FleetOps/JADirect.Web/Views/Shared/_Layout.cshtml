@@ -18,7 +18,6 @@
             -webkit-backdrop-filter: blur(10px);
         }
 
-        /* Estilo moderno para os Dropdowns */
         .dropdown-menu {
             border-radius: 12px;
             border: none;
@@ -42,7 +41,6 @@
             transform: translateX(5px);
         }
 
-        /* Efeito de botão revelado no Hover dos links principais */
         .nav-link-custom {
             position: relative;
             padding: 0.5rem 1rem;
@@ -94,7 +92,7 @@
                             <ul class="dropdown-menu animate-in fade-in slide-in-from-top-2" aria-labelledby="fleetMenu">
                                 <li>
                                     <a class="dropdown-item" asp-controller="Vehicles" asp-action="Index">
-                                        <i class="ri- Steer-line mr-3 text-teal-600"></i> Vehicles Fleet
+                                        <i class="ri-steering-line mr-3 text-teal-600"></i> Vehicles Fleet
                                     </a>
                                 </li>
                                 <li>
@@ -162,6 +160,34 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <main role="main" class="pb-12">
+        
+        @* BLOCO DE NOTIFICAÇÕES TIPO TOAST *@
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div id="alert-success" class="mb-6 flex items-center p-4 text-teal-800 rounded-2xl bg-teal-50 border border-teal-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                <i class="ri-checkbox-circle-fill text-xl mr-3 text-teal-600"></i>
+                <div class="text-xs font-black uppercase tracking-wider">
+                    @TempData["SuccessMessage"]
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="ml-auto text-teal-500 hover:text-teal-900 transition-colors">
+                    <i class="ri-close-line text-xl"></i>
+                </button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null || (!ViewData.ModelState.IsValid && ViewData.ModelState.Values.Any(v => v.Errors.Any())))
+        {
+            <div id="alert-error" class="mb-6 flex items-center p-4 text-red-800 rounded-2xl bg-red-50 border border-red-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                <i class="ri-error-warning-fill text-xl mr-3 text-red-600"></i>
+                <div class="text-xs font-black uppercase tracking-wider">
+                    @(TempData["ErrorMessage"] ?? "Please check the highlighted errors and try again.")
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" class="ml-auto text-red-500 hover:text-red-900 transition-colors">
+                    <i class="ri-close-line text-xl"></i>
+                </button>
+            </div>
+        }
+
         @RenderBody()
     </main>
 </div>
@@ -169,6 +195,25 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
+
+<script>
+    // Temporizador para esconder as mensagens automaticamente
+    document.addEventListener("DOMContentLoaded", function() {
+        const alerts = [
+            document.getElementById('alert-success'),
+            document.getElementById('alert-error')
+        ];
+
+        alerts.forEach(alert => {
+            if (alert) {
+                setTimeout(() => {
+                    alert.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                    setTimeout(() => alert.remove(), 500);
+                }, 5000);
+            }
+        });
+    });
+</script>
 
 @await RenderSectionAsync("Scripts", required: false)
 </body>

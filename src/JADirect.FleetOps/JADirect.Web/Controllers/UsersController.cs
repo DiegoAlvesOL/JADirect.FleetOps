@@ -159,7 +159,7 @@ public class UsersController : Controller
         
         _userRepository.UpdatePassword(id, hash);
 
-        TempData["SuccessMessage"] = "Password reset to 'JADirect@2026''";
+        TempData["SuccessMessage"] = "Password reset to 'JADirect@2026'";
         return RedirectToAction("Manage", new { id = id });
     }
 

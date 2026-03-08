@@ -76,6 +76,51 @@ public class VehicleRepository
         }
         return vehicles;
     }
+    
+    
+    /// <summary>
+    /// Versão da função GetAll mas com filtro de Busca no argumento se Não tiver nada chama a função GetAll tradicional.. 
+    /// Lista veículos filtrando por placa ou modelo.
+    /// </summary>
+    public List<Vehicle> GetAllFilter(string? search)
+    {
+        // Se não houver busca, chama o GetAll original que já existe
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return GetAll();
+        }
+
+        var vehicles = new List<Vehicle>();
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            // SQL com filtro LIKE para placa, fabricante ou modelo
+            const string sql = @"SELECT * FROM vehicles 
+                             WHERE registration_no LIKE @search 
+                                OR manufacturer LIKE @search 
+                                OR model LIKE @search 
+                             ORDER BY registration_no ASC";
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+            
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "@search";
+                parameter.Value = $"%{search}%";
+                command.Parameters.Add(parameter);
+
+                connection.Open();
+                using (var reader = (DbDataReader)command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        vehicles.Add(MapVehicleFromReader(reader));
+                    }
+                }
+            }
+        }
+        return vehicles;
+    }
 
     /// <summary>
     /// Verifica se um veículo com a mesma placa já existe.
@@ -226,6 +271,64 @@ public class VehicleRepository
             }
         }
         return null;
+    }
+
+
+    /// <summary>
+    /// Atualiza as informações básicas de registro do veículo (Fabricante, Modelo, KM e Tipo).
+    /// </summary>
+    /// <param name="vehicle"></param>
+    public void UpdateVehicleDetails(Vehicle vehicle)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sqlUpdateVehicle = @"UPDATE vehicles 
+                                              SET manufacturer = @Manufacturer,
+                                                  model = @Model,
+                                                  current_km = @CurrentKm,
+                                                  vehicle_type_id = @VehicleTypeId
+                                              WHERE id = @Id";
+            
+            var textInfo = CultureInfo.CurrentCulture.TextInfo;
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sqlUpdateVehicle;
+                AddParameter(command, "@Manufacturer", textInfo.ToTitleCase(vehicle.Manufacturer.Trim().ToLower()));
+                AddParameter(command, "@Model", textInfo.ToTitleCase(vehicle.Model.Trim().ToLower()));
+                AddParameter(command, "@CurrentKm", vehicle.CurrentKm);
+                AddParameter(command, "@VehicleTypeId", ( int)vehicle.VehicleType);
+                AddParameter(command, "@Id", vehicle.Id);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// Atualiza especificamente o status operacional do veículo no banco de dados.
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <param name="newStatus"></param>
+    public void UpdateVehicleStatus(int vehicleId, VehicleStatus newStatus)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sqlUpdateVehicleStatus = @"UPDATE vehicles
+                                                    SET status_id = @StatusId
+                                                    WHERE id = @Id";
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sqlUpdateVehicleStatus;
+                AddParameter(command, "@StatusId", (int)newStatus);
+                AddParameter(command, "@Id", vehicleId);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
     }
     
 }

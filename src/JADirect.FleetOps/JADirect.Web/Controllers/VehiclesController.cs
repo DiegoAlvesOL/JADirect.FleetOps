@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JADirect.Web.Controllers;
 
-
 /// <summary>
 /// Controlador responsável pelo inventário de veículos da JA Direct.
 /// Acesso restrito a usuários com perfil 'Manager'
@@ -22,29 +21,37 @@ public class VehiclesController : Controller
     }
     
     /// <summary>
-    /// Lista todos os veículos da frota.
+    /// Lista os veículos da frota permitindo filtragem por placa ou modelo.
     /// </summary>
-    /// <returns></returns>
-    public IActionResult Index()
+    /// <param name="searchString">Termo de busca vindo da View.</param>
+    public IActionResult Index(string? searchString)
     {
-        var fleet = _vehiclesRepository.GetAll();
+        // Alterado para passar o parâmetro de busca para o repositório
+        var fleet = _vehiclesRepository.GetAllFilter(searchString);
         return View(fleet);
     }
 
     /// <summary>
-    /// Abre a tela de cadastro de novo veículo.
+    /// Carrega os detalhes de um veículo específico para gestão.
+    /// Necessário para o link 'MANAGE' da tabela.
     /// </summary>
-    /// <returns></returns>
+    [HttpGet]
+    public IActionResult Manage(int id)
+    {
+        var vehicle = _vehiclesRepository.GetById(id);
+        if (vehicle == null)
+        {
+            return NotFound();
+        }
+        return View(vehicle);
+    }
+
     [HttpGet]
     public IActionResult Create()
     {
         return View();
     }
 
-    /// <summary>
-    /// Processa o cadastro de um novo ativo.
-    /// </summary>
-    /// <returns></returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(Vehicle vehicle)
@@ -62,26 +69,80 @@ public class VehiclesController : Controller
             return View(vehicle);
         }
 
+        // Verificação de Unicidade de Placa
         if (_vehiclesRepository.Exists(vehicle.RegistrationNo))
         {
-            ModelState.AddModelError("RegistrationNo", "This vehicle is already registered in the system.");
+            ModelState.AddModelError("RegistrationNo", "This registration is already in use.");
             return View(vehicle);
         }
 
         try
         {
-            // Regra Todo veículo novo entra como 'Active' e com data atual
             vehicle.Status = VehicleStatus.Active;
             vehicle.CreatedAt = DateTime.Now;
 
             _vehiclesRepository.Add(vehicle);
             return RedirectToAction(nameof(Index));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ModelState.AddModelError("", "Internal error while saving the vehicle. Please try again.");
+            ModelState.AddModelError("", "Database error. Please try again.");
             return View(vehicle);
+        }
+    }
 
+    /// <summary>
+    /// Processa a atualização dos dados cadastrais do veículo.
+    /// </summary>
+    /// <param name="vehicle"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Update(Vehicle vehicle)
+    {
+        ModelState.Remove("RegistrationNo");
+        ModelState.Remove("CreatedAt");
+
+        if (!ModelState.IsValid)
+        {
+            return View("Manage", vehicle);
+        }
+
+        try
+        {
+            _vehiclesRepository.UpdateVehicleDetails(vehicle);
+            TempData["SuccessMessage"] = "Vehicle details updated successfully!";
+            return RedirectToAction(nameof(Manage), new { id = vehicle.Id });
+        }
+
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "Database error while updating details.";;
+            return View("Manage", vehicle);
+        }
+    }
+
+
+    /// <summary>
+    /// Action específica para a troca de status (Active, Maintenance, etc) via painel lateral.
+    /// </summary>
+    /// <param name="vehicleId"></param>
+    /// <param name="newStatus"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateStatus(int vehicleId, VehicleStatus newStatus)
+    {
+        try
+        {
+            _vehiclesRepository.UpdateVehicleStatus(vehicleId, newStatus);
+            TempData["SuccessMessage"] = $"Vehicle status changed to {newStatus}!";
+            return RedirectToAction(nameof(Manage), new { id = vehicleId });
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "Failed to update vehicle status.";
+            return RedirectToAction(nameof(Manage), new { id = vehicleId });
         }
     }
 }
