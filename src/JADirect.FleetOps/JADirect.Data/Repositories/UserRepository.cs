@@ -184,6 +184,27 @@ public class UserRepository
     }
 
     /// <summary>
+    /// Atualiza o status de um usuário para 'Active'.
+    /// </summary>
+    /// <param name="userId"></param>
+    public void Activate(int userId)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sqlActivate = "UPDATE users SET status_id = @StatusId WHERE id = @Id";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sqlActivate;
+                AddParameter(command, "@StatusId", (int)UserStatus.Active);
+                AddParameter(command, "@Id", userId);
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+    }
+    
+
+    /// <summary>
     /// /// Busca um usuário específico utilizando a Primary Key da tabela 'users'.
     /// </summary>
     /// <param name="Id"></param>
@@ -210,6 +231,81 @@ public class UserRepository
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Ação exclusiva do Manager. Permite alterar dados cadastrais e o cargo.
+    /// O ID é usado apenas como filtro no WHERE, nunca no SET.
+    /// </summary>
+    /// <param name="user"></param>
+    public void UpdateUserAsManager(User user)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = @"UPDATE users
+                                 SET first_name = @FirstName,
+                                     surname = @Surname,
+                                     email = @Email,
+                                     role_id = @RoleId
+                                 WHERE id = @Id";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                AddParameter(command, "@FirstName", user.FirstName.Trim());
+                AddParameter(command, "@Surname", user.Surname.Trim());
+                AddParameter(command, "@Email", user.Email.Trim());
+                AddParameter(command, "@RoleId", (int)user.Role);
+                AddParameter(command, "@Id", user.Id);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+    }
+
+    
+    /// <summary>
+    /// /// Ação de Autonomia do Usuário. Permite alterar apenas telefone e senha.
+    /// </summary>
+    /// <param name="userid"></param>
+    /// <param name="phoneNumber"></param>
+    public void UpdateOwnProfile(int userid, string phoneNumber)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sql = "UPDATE users SET phone_number = @PhoneNumber WHERE id = @Id";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sql;
+                AddParameter(command, "@PhoneNumber", phoneNumber);
+                AddParameter(command, "@Id", userid);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sobrescreve o hash da senha de um usuário específico. Este método é chamado pelo Controller/UsersController/ChangeOwnPassword
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="newHash"></param>
+    public void UpdatePassword(int userId, string newHash)
+    {
+        using (var connection = _connectionFactory.CreateConnection())
+        {
+            const string sqlNewHash = "UPDATE users SET password_hash = @NewHash WHERE id = @Id";
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = sqlNewHash;
+                AddParameter(command, "@NewHash", newHash);
+                AddParameter(command, "@Id", userId);
+                
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
     }
     
 }

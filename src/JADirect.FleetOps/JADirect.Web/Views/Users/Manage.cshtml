@@ -1,13 +1,20 @@
+@using JADirect.Domain.Enums
 @model JADirect.Domain.Models.UserManagementViewModel
-@* Interface de gestão JA Direct. 
-   Consome o ViewModel de Domínio e respeita os campos first_name/surname. *@
 
 @{
     ViewData["Title"] = "Manage - " + Model.DisplayName;
 }
 
 <div class="max-w-4xl mx-auto py-10 px-4">
-    
+
+    @* Mensagem de Sucesso *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="mb-6 p-4 bg-green-50 border-l-4 border-[#008080] text-[#006666] font-bold rounded shadow-sm flex items-center">
+            <i class="ri-checkbox-circle-fill mr-2 text-xl"></i> @TempData["SuccessMessage"]
+        </div>
+    }
+
     <div class="mb-6">
         <a asp-action="Index" class="text-sm font-bold text-[#008080] hover:text-[#006666] flex items-center no-underline">
             <i class="ri-arrow-left-line mr-1"></i> Back to Staff List
@@ -16,6 +23,7 @@
 
     <div class="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
         
+        @* Header *@
         <div class="bg-gray-50 p-8 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="h-20 w-20 bg-[#008080] rounded-full flex items-center justify-center text-white text-3xl font-bold">
@@ -33,49 +41,115 @@
             </div>
         </div>
 
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="space-y-4">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Database Record</h3>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 p-3 rounded-lg">
-                        <label class="text-[10px] text-gray-500 uppercase font-bold">First Name</label>
-                        <p class="font-bold text-gray-800">@Model.FirstName</p>
+        <div class="p-8">
+            @* FORMULÁRIO PRINCIPAL DE EDIÇÃO *@
+            <form asp-action="UpdateStaff" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.UserId" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    
+                    @* Coluna: Dados Editáveis *@
+                    <div class="space-y-6">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Database Record</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] text-gray-500 uppercase font-bold ml-1">First Name</label>
+                                <input type="text" name="FirstName" value="@Model.FirstName" class="w-full mt-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008080] outline-none font-semibold text-gray-800" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500 uppercase font-bold ml-1">Surname</label>
+                                <input type="text" name="Surname" value="@Model.Surname" class="w-full mt-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008080] outline-none font-semibold text-gray-800" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 uppercase font-bold ml-1">Contact Email</label>
+                            <input type="email" name="Email" value="@Model.Email" class="w-full mt-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008080] outline-none font-semibold text-gray-800" />
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 uppercase font-bold ml-1">Access Level (Role)</label>
+                            <select name="Role" class="w-full mt-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#008080] outline-none font-semibold text-gray-800 appearance-none">
+                                @foreach (var role in Enum.GetValues(typeof(UserRoles)))
+                                {
+                                    @if (Model.Role == (UserRoles)role)
+                                    {
+                                        <option value="@((int)role)" selected>@role</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@((int)role)">@role</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <button type="submit" class="w-full py-4 bg-[#008080] text-white rounded-xl font-bold hover:bg-[#006666] transition-all shadow-lg shadow-teal-100 flex items-center justify-center">
+                            <i class="ri-save-3-line mr-2 text-xl"></i> Save Database Changes
+                        </button>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-lg">
-                        <label class="text-[10px] text-gray-500 uppercase font-bold">Surname</label>
-                        <p class="font-bold text-gray-800">@Model.Surname</p>
+
+                    @* Coluna: Painel de Controle (Security) *@
+                    <div class="space-y-6">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Security Panel</h3>
+                        
+                        <div class="space-y-4">
+                            
+                            @if (Model.IsActive)
+                            {
+                                @* Botão para Desativar *@
+                                <button type="button" 
+                                        onclick="if(confirm('Suspend this user access?')) { document.getElementById('deactivateForm').submit(); }"
+                                        class="w-full flex items-center justify-between p-5 rounded-2xl border-2 border-red-50 text-red-600 hover:bg-red-50 transition">
+                                    <div class="text-left">
+                                        <p class="font-bold">Suspend Staff Access</p>
+                                        <p class="text-[10px] opacity-70">User will not be able to log in</p>
+                                    </div>
+                                    <i class="ri-shut-down-line text-3xl"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                @* Botão para Ativar *@
+                                <button type="button" 
+                                        onclick="if(confirm('Restore this user access?')) { document.getElementById('activateForm').submit(); }"
+                                        class="w-full flex items-center justify-between p-5 rounded-2xl border-2 border-green-50 text-green-600 hover:bg-green-50 transition">
+                                    <div class="text-left">
+                                        <p class="font-bold">Restore Staff Access</p>
+                                        <p class="text-[10px] opacity-70">User will regain system access</p>
+                                    </div>
+                                    <i class="ri-checkbox-circle-line text-3xl"></i>
+                                </button>
+                            }
+
+                            @* Botão Reset de Senha *@
+                            <button type="button" 
+                                    onclick="if(confirm('Reset password to JADirect@2026?')) { document.getElementById('resetForm').submit(); }"
+                                    class="w-full flex items-center justify-between p-5 rounded-2xl border-2 border-slate-50 text-slate-600 hover:bg-slate-50 transition">
+                                <div class="text-left">
+                                    <p class="font-bold">System Password Reset</p>
+                                    <p class="text-[10px] opacity-70">Generates a temporary secure hash</p>
+                                </div>
+                                <i class="ri-key-2-line text-3xl"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="bg-gray-50 p-4 rounded-xl">
-                    <label class="text-[10px] text-gray-500 uppercase font-bold">Access Level (Role)</label>
-                    <p class="font-bold text-gray-800">@Model.Role</p>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Control Panel</h3>
-                
-                <button type="button" 
-                        onclick="if(confirm('Toggle user access status?')) { document.getElementById('toggleForm').submit(); }"
-                        class="w-full flex items-center justify-between p-4 rounded-xl border-2 transition @(Model.IsActive ? "border-red-100 text-red-600 hover:bg-red-50" : "border-green-100 text-green-600 hover:bg-green-50")">
-                    <span class="font-bold">@(Model.IsActive ? "Suspend Access" : "Restore Access")</span>
-                    <i class="ri-shut-down-line text-2xl"></i>
-                </button>
-
-                <button type="button" 
-                        onclick="if(confirm('Reset password to JADirect@2026?')) { document.getElementById('resetForm').submit(); }"
-                        class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-slate-100 text-slate-600 hover:bg-slate-50 transition">
-                    <span class="font-bold">Reset Password</span>
-                    <i class="ri-key-2-line text-2xl"></i>
-                </button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<form id="toggleForm" asp-action="ToggleStatus" method="post" style="display:none;">
+@* FORMULÁRIOS DE APOIO (Ocultos e independentes) *@
+
+<form id="deactivateForm" asp-action="Deactivate" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.UserId" />
+</form>
+
+<form id="activateForm" asp-action="Activate" method="post" style="display:none;">
     @Html.AntiForgeryToken()
     <input type="hidden" name="id" value="@Model.UserId" />
 </form>
