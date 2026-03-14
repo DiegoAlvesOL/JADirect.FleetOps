@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using JADirect.Domain.Models;
 using JADirect.Domain.Enums;
+using ClosedXML.Excel;
+using System.IO;
 
 namespace JADirect.Web.Controllers;
 
@@ -76,5 +78,77 @@ public class ManagerController : Controller
         }
         
         return View(report);
+    }
+
+    [HttpGet]
+    public IActionResult ExportExcel(DateTime? start, DateTime? end, string? driverName)
+    {
+
+        // Se as datas vierem vazias do botão, ele assume o padrão de 7 dias
+        DateTime startDate = start ?? DateTime.Now.AddDays(-7);
+        DateTime endDate = end ?? DateTime.Now;
+        
+        // 2. Criar o ViewModel com os dados de busca
+        var report = new PerformanceReportViewModel()
+        {
+            StartDate = startDate,
+            EndDate = endDate,
+            DriverSearch = driverName,
+        };
+        
+        // Chamar o repositório para preencher a lista DetailedLogs
+        // Aqui o repositório vai rodar o SQL e dar o .Add() na lista
+        _dailyLogRepository.FillDashboardDetails(report);
+        
+        
+        // Cria o arquivo Excel usando o plug in ClosedXML
+        using (var workbook = new XLWorkbook())
+        {
+            var worksheet = workbook.Worksheets.Add("Audit Logs");
+            
+            
+            // Estilo do Cabeçalho
+            var  headerRow = worksheet.Row(1);
+            headerRow.Style.Font.Bold = true;
+            headerRow.Style.Fill.BackgroundColor = XLColor.FromHtml("#008080");
+            headerRow.Style.Font.FontColor = XLColor.White;
+            
+            // Cabeçalho da planilha
+            worksheet.Cell(1, 1).Value = "Date";
+            worksheet.Cell(1, 2).Value = "Driver";
+            worksheet.Cell(1, 3).Value = "Plate";
+            worksheet.Cell(1, 4).Value = "Deliveries";
+            worksheet.Cell(1, 5).Value = "Collections";
+            worksheet.Cell(1, 6).Value = "Returns";
+            
+            // Dados
+            int currentRow = 2;
+            foreach (var log in report.DetailedLogs)
+            {
+                worksheet.Cell(currentRow, 1).Value = log.LogDate.ToString("dd/MM/yyyy");
+                worksheet.Cell(currentRow, 2).Value = log.DriverName;
+                worksheet.Cell(currentRow, 3).Value = log.RegistrationNo;
+                worksheet.Cell(currentRow, 4).Value = log.Deliveries;
+                worksheet.Cell(currentRow, 5).Value = log.Collections;
+                worksheet.Cell(currentRow, 6).Value = log.Returns;
+                
+                currentRow++;
+            }
+            
+            worksheet.Columns().AdjustToContents();
+
+            using (var stream = new MemoryStream())
+            {
+                workbook.SaveAs(stream);
+                var content = stream.ToArray();
+
+                return File(
+                    content,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"JADirect_Audit_{DateTime.Now:yyyyMMdd}.xlsx"
+                );
+            }
+        }
+        
     }
 }

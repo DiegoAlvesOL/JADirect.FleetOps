@@ -210,15 +210,15 @@
                                     <span class="font-bold text-slate-700 text-sm">@log.DriverName</span>
                                     <div class="text-[9px] text-slate-400 font-bold uppercase">@log.Message</div>
                                 </div>
-                                <button class="btn btn-sm btn-teal rounded-xl px-3 py-1" style="font-size: 9px;" onclick="alert('Notifying...')">REMIND</button>
+                                <button type="button" class="btn btn-sm btn-teal rounded-xl px-3 py-1 opacity-80 cursor-default" style="font-size: 9px;">REMIND</button>
                             </div>
                         }
                     </div>
                 </div>
                 @if (Model.PendingDailyLogs.Any()) {
                     <div class="p-2 bg-slate-50 border-t border-slate-100">
-                        <button class="btn btn-link w-100 text-decoration-none text-slate-400 font-bold text-[10px] uppercase hover:text-teal">
-                            <i class="ri-mail-send-line mr-1"></i> Remind all pending drivers
+                        <button type="button" class="btn btn-link w-100 text-decoration-none text-slate-300 font-bold text-[10px] uppercase cursor-default border-0 shadow-none">
+                            <i class="ri-mail-send-line mr-1"></i> Remind all pending drivers (Soon)
                         </button>
                     </div>
                 }
@@ -299,9 +299,13 @@
     <section class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-5">
         <div class="p-4 border-b border-slate-100 d-flex justify-content-between align-items-center bg-slate-50/50">
             <h5 class="m-0 font-bold text-slate-800">Log Detailing (Audit)</h5>
-            <button class="btn btn-sm btn-outline-success border-2 rounded-xl font-bold text-[10px] uppercase px-3">
+            
+            <button type="button" 
+                    onclick="window.location.href='@Url.Action("ExportExcel", "Manager", new { start = Model.StartDate.ToString("yyyy-MM-dd"), end = Model.EndDate.ToString("yyyy-MM-dd"), driverName = Model.DriverSearch })'"
+                    class="btn btn-sm btn-outline-success border-2 rounded-xl font-bold text-[10px] uppercase px-3">
                 <i class="ri-file-excel-2-line mr-1"></i> Export Excel
             </button>
+            
         </div>
         <div class="overflow-x-auto">
             <table class="table-modern">
