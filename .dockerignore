@@ -11,3 +11,5 @@
 .DS_Store
 src/JADirect.Web/appsettings.Development.json
 
+# Banco SQLite local — produção usa MySQL remoto no Railway
+**/*.db
