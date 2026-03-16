@@ -73,7 +73,8 @@ public class InspectionRepository
             INNER JOIN users u ON wc.user_id = u.id 
             INNER JOIN vehicles v ON wc.vehicle_id = v.id 
             WHERE wc.vehicle_id = @vehicleId 
-            ORDER BY wc.check_date DESC";
+            ORDER BY wc.check_date DESC
+            LIMIT 30";
 
         using var command = new MySqlCommand(sql, (MySqlConnection)connection);
         command.Parameters.AddWithValue("vehicleId", vehicleId);

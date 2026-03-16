@@ -1,6 +1,7 @@
 using JADirect.Data.Repositories;
 using JADirect.Domain.Entities;
 using JADirect.Domain.Enums;
+using JADirect.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +15,12 @@ namespace JADirect.Web.Controllers;
 public class VehiclesController : Controller
 {
     private readonly VehicleRepository _vehiclesRepository;
+    private readonly InspectionRepository _inspectionRepository;
 
-    public VehiclesController(VehicleRepository vehiclesRepository)
+    public VehiclesController(VehicleRepository vehiclesRepository, InspectionRepository inspectionRepository)
     {
         _vehiclesRepository = vehiclesRepository;
+        _inspectionRepository = inspectionRepository;
     }
     
     /// <summary>
@@ -43,7 +46,13 @@ public class VehiclesController : Controller
         {
             return NotFound();
         }
-        return View(vehicle);
+
+        var viewModel = new VehicleManageViewModel
+        {
+            Vehicle = vehicle,
+            WalkaroundHistory = _inspectionRepository.GetHistoryByVehicleId(id)
+        };
+        return View(viewModel);
     }
 
     [HttpGet]
@@ -98,14 +107,20 @@ public class VehiclesController : Controller
     /// <returns></returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Update(Vehicle vehicle)
+    public IActionResult Update([Bind(Prefix = "Vehicle")] Vehicle vehicle)
     {
         ModelState.Remove("RegistrationNo");
         ModelState.Remove("CreatedAt");
 
         if (!ModelState.IsValid)
         {
-            return View("Manage", vehicle);
+            var viewModel = new VehicleManageViewModel
+            {
+                Vehicle = vehicle,
+                WalkaroundHistory = _inspectionRepository.GetHistoryByVehicleId(vehicle.Id)
+            };
+            
+            return View("Manage", viewModel);
         }
 
         try
@@ -117,8 +132,13 @@ public class VehiclesController : Controller
 
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Database error while updating details.";;
-            return View("Manage", vehicle);
+            TempData["ErrorMessage"] = "Database error while updating details.";
+            var viewModel = new VehicleManageViewModel
+            {
+                Vehicle = vehicle,
+                WalkaroundHistory = _inspectionRepository.GetHistoryByVehicleId(vehicle.Id)
+            };
+            return View("Manage", viewModel);
         }
     }
 

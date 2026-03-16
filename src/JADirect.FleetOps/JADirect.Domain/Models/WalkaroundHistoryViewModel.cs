@@ -14,4 +14,10 @@ public class WalkaroundHistoryViewModel
     public string DefectNotes { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
+    
+    public bool IsPassed => !hasDefect;
+    
+    public string? Location => Latitude.HasValue && Longitude.HasValue ?
+        $"https://www.google.com/maps?q={Latitude},{Longitude}" :
+        null;
 }
