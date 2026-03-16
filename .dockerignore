@@ -1,0 +1,13 @@
+# <summary>
+# Filtro de arquivos para o contexto de build Docker.
+# </summary>
+
+.git/
+.vs/
+.vscode/
+**/bin/
+**/obj/
+**/publish/
+.DS_Store
+src/JADirect.Web/appsettings.Development.json
+
