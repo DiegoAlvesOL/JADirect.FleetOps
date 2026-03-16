@@ -109,14 +109,20 @@ public class VehiclesController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Update([Bind(Prefix = "Vehicle")] Vehicle vehicle)
     {
-        ModelState.Remove("RegistrationNo");
-        ModelState.Remove("CreatedAt");
+        ModelState.Remove("Vehicle.RegistrationNo");
+        ModelState.Remove("Vehicle.CreatedAt");
 
         if (!ModelState.IsValid)
         {
+            var freshVehicle = _vehiclesRepository.GetById(vehicle.Id);
+            freshVehicle.Manufacturer = vehicle.Manufacturer;
+            freshVehicle.Model = vehicle.Model;
+            freshVehicle.CurrentKm = vehicle.CurrentKm;
+            freshVehicle.VehicleType = vehicle.VehicleType;
+            
             var viewModel = new VehicleManageViewModel
             {
-                Vehicle = vehicle,
+                Vehicle = freshVehicle,
                 WalkaroundHistory = _inspectionRepository.GetHistoryByVehicleId(vehicle.Id)
             };
             
@@ -133,9 +139,16 @@ public class VehiclesController : Controller
         catch (Exception)
         {
             TempData["ErrorMessage"] = "Database error while updating details.";
+            var freshVehicle = _vehiclesRepository.GetById(vehicle.Id);
+            freshVehicle.Manufacturer = vehicle.Manufacturer;
+            freshVehicle.Model = vehicle.Model;
+            freshVehicle.CurrentKm = vehicle.CurrentKm;
+            freshVehicle.VehicleType = vehicle.VehicleType;
+            
+            
             var viewModel = new VehicleManageViewModel
             {
-                Vehicle = vehicle,
+                Vehicle = freshVehicle,
                 WalkaroundHistory = _inspectionRepository.GetHistoryByVehicleId(vehicle.Id)
             };
             return View("Manage", viewModel);
