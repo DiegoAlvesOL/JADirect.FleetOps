@@ -11,7 +11,7 @@ namespace JADirect.Web.Controllers;
 /// Controlador responsável por gerenciar as telas de usuários.
 /// Acesso restrito a usuários com perfil 'Manager'
 /// </summary>
-[Authorize(Roles = "Manager")]
+[Authorize]
 public class UsersController : Controller
 {
     // Importando o repositório para dentro do controller
@@ -26,6 +26,7 @@ public class UsersController : Controller
     /// Função que lista todos os usuário por meio da função GetAll do UserRepository.cs
     /// </summary>
     /// <returns></returns>
+    [Authorize(Roles = "Manager")]
     public IActionResult Index(string? searchString)
     {
         var users = _userRepository.GetAll(searchString);
@@ -37,6 +38,7 @@ public class UsersController : Controller
     /// </summary>
     /// <returns></returns>
     [HttpGet]
+    [Authorize(Roles = "Manager")]
     public IActionResult Create()
     {
         return View();
@@ -50,6 +52,7 @@ public class UsersController : Controller
     /// <param name="plainPassord"></param>
     /// <returns></returns>
     [HttpPost]
+    [Authorize(Roles = "Manager")]
     [ValidateAntiForgeryToken]
     public IActionResult Create(User user, string plainPassword)
     {
@@ -107,6 +110,7 @@ public class UsersController : Controller
     /// <returns></returns>
     [HttpPost]
     [Authorize(Roles = "Manager")]
+    [ValidateAntiForgeryToken]
     public IActionResult Deactivate(int id)
     {
         if (id <= 0)
@@ -126,6 +130,7 @@ public class UsersController : Controller
     /// <returns></returns>
     [HttpPost]
     [Authorize(Roles = "Manager")]
+    [ValidateAntiForgeryToken]
     public IActionResult Activate(int id)
     {
         if (id <= 0)
@@ -171,6 +176,7 @@ public class UsersController : Controller
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet]
+    [Authorize(Roles = "Manager")]
     public IActionResult Manage(int id)
     {
         var user = _userRepository.GetById(id);
@@ -216,29 +222,52 @@ public class UsersController : Controller
 
 
     /// <summary>
+    /// Carrega a tela de troca de senha do próprio usuário autenticado.
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    [Authorize]
+    public IActionResult ChangeOwnPassword()
+    {
+        return View();
+    }
+
+
+    /// <summary>
     /// Action para o próprio usuário trocar sua senha.
     /// </summary>
     /// <param name="newPassword"></param>
     /// <returns></returns>
     [HttpPost]
+    [Authorize]
     [ValidateAntiForgeryToken]
-    public IActionResult ChangeOwnPassword(string newPassword)
+    public IActionResult ChangeOwnPassword(string newPassword, string confirmPassword)
     {
         var userIdClaim = User.FindFirst("UserId")?.Value;
         if (string.IsNullOrEmpty(userIdClaim))
         {
             return Unauthorized();
         }
+
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            ModelState.AddModelError("newPassword", "Password cannot be empty.");
+            return View();
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            ModelState.AddModelError("confirmPassword", "Passwords do not match.");
+            return View();
+        }
         
         int userId = int.Parse(userIdClaim);
         string hash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-        
         _userRepository.UpdatePassword(userId, hash);
 
         TempData["SuccessMessage"] = "Your password has been changed.";
         return RedirectToAction("Index", "Home");
     }
-    
-    
     
 }
