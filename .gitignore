@@ -5,14 +5,15 @@ publish/
 *.log
 
 # --- Banco de Dados ---
-# Ignora arquivos de banco local (SQLite ou dumps)
 *.db
 *.sqlite
 *.sql.gz
 
 # --- Configurações Sensíveis ---
-# Se o projeto for público, descomente a linha abaixo:
-# appsettings.json
+# appsettings.json fica no Git com placeholders — sem credenciais reais
+# Os arquivos de ambiente específicos ficam apenas na máquina local
+appsettings.Development.json
+appsettings.Production.json
 
 # --- IDEs / Ferramentas ---
 .idea/

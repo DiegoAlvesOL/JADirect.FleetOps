@@ -187,7 +187,8 @@
         </div>
 
         <div class="px-2">
-            <button type="submit" class="btn btn-submit w-100 fw-bold shadow">
+            @* ALTERADO: adicionado id="submitBtn" para permitir controle do estado via JavaScript *@
+            <button type="submit" id="submitBtn" class="btn btn-submit w-100 fw-bold shadow">
                 SUBMIT INSPECTION
             </button>
         </div>
@@ -235,15 +236,14 @@
         container.style.display = hasFail ? 'block' : 'none';
         input.required = hasFail;
     }
+    
+    function enableSubmitButton() {
+        const submitButton = document.getElementById('submitBtn');
+        submitButton.disabled = false;
+        submitButton.innerText = 'SUBMIT INSPECTION';
+    }
 
     document.addEventListener("DOMContentLoaded", function() {
-        // GPS
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(p => {
-                document.getElementById('lat').value = p.coords.latitude;
-                document.getElementById('lon').value = p.coords.longitude;
-            });
-        }
 
         // Monitorar cliques nos rádios
         document.addEventListener('change', function(e) {
@@ -251,9 +251,38 @@
                 refreshUI();
             }
         });
-
-        // Inicializar progresso caso haja valores pré-preenchidos
+        
         refreshUI();
+
+        
+        if (navigator.geolocation) {
+
+            
+            const submitButton = document.getElementById('submitBtn');
+            submitButton.disabled = true;
+            submitButton.innerText = 'Getting GPS location...';
+
+            
+            const gpsTimeoutIdentifier = setTimeout(function() {
+                enableSubmitButton();
+            }, 5000);
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+
+                    clearTimeout(gpsTimeoutIdentifier);
+                    document.getElementById('lat').value = position.coords.latitude;
+                    document.getElementById('lon').value = position.coords.longitude;
+                    enableSubmitButton();
+                },
+                function(error) {
+
+                    clearTimeout(gpsTimeoutIdentifier);
+                    enableSubmitButton();
+                }
+            );
+
+        }
     });
 </script>
 }
