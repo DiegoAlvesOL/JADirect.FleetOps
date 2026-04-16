@@ -1,6 +1,7 @@
 using JADirect.Application.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using JADirect.Data.Repositories;
+using JADirect.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,8 @@ app.UseSession();
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseMiddleware<UserStatusMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllerRoute(
