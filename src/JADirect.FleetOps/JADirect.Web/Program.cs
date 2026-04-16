@@ -1,7 +1,9 @@
+using System.Threading.RateLimiting;
 using JADirect.Application.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using JADirect.Data.Repositories;
 using JADirect.Web.Middleware;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(8);
     });
+
+// ADICIONADO, Rate Limiting para proteger o endpoint de Login contra
+//ataques de força bruta.
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    rateLimiterOptions.AddFixedWindowLimiter("login-policy", fixedWindowOptions =>
+    {
+        fixedWindowOptions.PermitLimit = 10;
+        fixedWindowOptions.Window = TimeSpan.FromMinutes(1);
+        fixedWindowOptions.QueueLimit = 0;
+        fixedWindowOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    
+    //Resposta padrão quando o limite é atingido.
+    // HTTP 429 Too Many Requests é o código semântico correto para rate limiting.
+    // Redireciona para o Login em vez de retornar JSON, compatível com a View.
+    rateLimiterOptions.OnRejected = async (context, CancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Redirect("/Account/Login?blocked=true");
+        await Task.CompletedTask;
+    };
+});
 
 // ---------------------------------------------------------
 // 2. INJEÇÃO DE DEPENDÊNCIA
@@ -63,6 +88,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseSession();
 app.UseRouting();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseMiddleware<UserStatusMiddleware>();

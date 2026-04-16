@@ -4,6 +4,7 @@ using JADirect.Domain.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace JADirect.Web.Controllers;
 
@@ -19,11 +20,18 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult Login()
     {
+        bool userWasBlockedByRateLimit = Request.Query.ContainsKey("blocked");
+        
+        if (userWasBlockedByRateLimit)
+        {
+            ViewBag.Error = "Too many login attempts. Please wait 1 minute and try again.";
+        }
         return View();
     }
     
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("login-policy")]
     public async Task<IActionResult> Login(string email, string password)
     {
         var user = _authService.ValidateUser(email, password);
