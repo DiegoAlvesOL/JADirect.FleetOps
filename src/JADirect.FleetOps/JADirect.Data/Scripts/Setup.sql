@@ -72,3 +72,10 @@ CREATE INDEX idx_vehicle_last_check ON vehicles(last_walkaround_at);
 -- Adicionando a coluna de odômetro como opcional (pode ser NULL)
 ALTER TABLE daily_logs
     ADD COLUMN current_odometer INT NULL AFTER returns;
+
+
+-- Defesa no banco: impede que o mesmo motorista registre dois logs
+-- para o mesmo veículo no mesmo dia, independente da aplicação.
+ALTER TABLE daily_logs
+    ADD CONSTRAINT uq_daily_log_user_vehicle_date
+        UNIQUE (user_id, vehicle_id, log_date);

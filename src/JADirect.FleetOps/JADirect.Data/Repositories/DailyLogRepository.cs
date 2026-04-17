@@ -36,6 +36,38 @@ public class DailyLogRepository
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Verifica se já existe um log registrado para o motorista, veículo e data informados.
+    /// </summary>
+    /// <param name="userId">ID do motorista.</param>
+    /// <param name="vehicleId">ID do veículo.</param>
+    /// <param name="date">Data do log a verificar.</param>
+    /// <returns>True se já existir um registro. False se a data estiver livre.</returns>
+    public bool HasLogForData(int userId, int vehicleId, DateTime date)
+    {
+        using var connection = (MySqlConnection)_connectionFactory.CreateConnection();
+
+        const string sql = @"
+            SELECT COUNT(*)
+            FROM daily_logs
+            WHERE user_id = @UserId
+                AND vehicle_id = @VehicleId
+                AND DATE(log_date) = DATE(@Date)";
+
+        using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@UserId", userId);
+        command.Parameters.AddWithValue("@VehicleId", vehicleId);
+        command.Parameters.AddWithValue("@Date", date.Date);
+
+        connection.Open();
+
+        var count = Convert.ToInt64(command.ExecuteScalar());
+        
+        return count > 0;
+    }
+    
+    
+
     public List<RecentActivityItem> GetRecentLogs(int userId, int limit = 5)
     {
         var logs = new List<RecentActivityItem>();
