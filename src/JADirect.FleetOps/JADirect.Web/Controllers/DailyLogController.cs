@@ -1,3 +1,4 @@
+using JADirect.Application.Services;
 using JADirect.Data.Repositories;
 using JADirect.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -10,15 +11,15 @@ namespace JADirect.Web.Controllers;
 /// </summary>
 public class DailyLogController : Controller
 {
-    private readonly DailyLogRepository _repository;
+    private readonly DailyLogService _dailyLogService;
 
     /// <summary>
     /// Construtor que recebe o repositório via Injeção de Dependência.
     /// </summary>
     /// <param name="repository">Instância do repositório de logs diários.</param>
-    public DailyLogController(DailyLogRepository repository)
+    public DailyLogController(DailyLogService dailyLogService)
     {
-        _repository = repository;
+        _dailyLogService = dailyLogService;
     }
     
     /// <summary>
@@ -35,8 +36,13 @@ public class DailyLogController : Controller
         {
             return RedirectToAction("SelectVehicle", "Driver");
         }
+
+        var log = new DailyLog
+        {
+            LogDate = DateTime.Now.Date
+        };
         
-        return View(new DailyLog());
+        return View(log);
     }
 
     /// <summary>
@@ -65,7 +71,7 @@ public class DailyLogController : Controller
         // Vinculamos o Log ao veículo e usuário corretos antes de validar o modelo.
         log.VehicleId = vehicleId.Value;
         log.UserId = int.Parse(userIdClaim);
-        log.LogDate = DateTime.Now;
+        
         
         // Removemos a validação automática destes campos, pois os preenchemos via código acima.
         ModelState.Remove("UserId");
@@ -77,18 +83,22 @@ public class DailyLogController : Controller
         {
             ModelState.AddModelError("", "Operational values (Deliveries/Collections/Returns) cannot be negative.");
         }
-
-        // 5. Persistência:
-        // Se tudo estiver correto, chama o repositório para gravar no banco de dados.
-        if (ModelState.IsValid)
+        
+        if (!ModelState.IsValid)
         {
-            _repository.Add(log);
-            
-            // Retorna para a Home após o sucesso.
-            return RedirectToAction("Index", "Home");
+            return View(log);
         }
 
+        var (success, errorMessage) = _dailyLogService.CreateLog(log);
+
+        if (!success)
+        {
+            // O serviço recusou a operação. Exibimos a mensagem de erro na View.
+            ModelState.AddModelError("", errorMessage);
+            return View(log);
+        }
+        
         // Se houver erro de validação, retorna para a mesma View exibindo as mensagens de erro.
-        return View(log);
+        return RedirectToAction("Index", "Home");
     }
 }
