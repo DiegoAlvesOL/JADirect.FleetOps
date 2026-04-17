@@ -66,6 +66,7 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<VehicleRepository>();
 builder.Services.AddScoped<InspectionRepository>();
 builder.Services.AddScoped<DailyLogRepository>();
+builder.Services.AddScoped<DailyLogService>();
 
 
 // Serviços (Camada de Aplicação)
