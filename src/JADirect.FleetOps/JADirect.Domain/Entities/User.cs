@@ -10,11 +10,11 @@ namespace JADirect.Domain.Entities;
 public class User
 {
     public int Id { get; set; }
-    public string FirstName { get; set; }
-    public string Surname { get; set; }
-    public string Email { get; set; }
-    public string PhoneNumber { get; set; }
-    public string PasswordHash { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string Surname { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
     public UserRoles Role { get; set; }
     public UserStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }

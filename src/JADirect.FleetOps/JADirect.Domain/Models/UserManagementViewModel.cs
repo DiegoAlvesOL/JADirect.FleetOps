@@ -9,9 +9,9 @@ namespace JADirect.Domain.Models;
 public class UserManagementViewModel
 {
     public int UserId { get; set; }
-    public string FirstName { get; set; }
-    public string Surname { get; set; }
-    public string Email { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string Surname { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public UserRoles Role { get; set; }
     public UserStatus Status { get; set; }
     

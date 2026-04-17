@@ -9,9 +9,9 @@ namespace JADirect.Domain.Entities;
 public class Vehicle
 {
     public int Id { get; set; }
-    public string RegistrationNo { get; set; }
-    public string Manufacturer { get; set; }
-    public string Model { get; set; }
+    public string RegistrationNo { get; set; } = string.Empty;
+    public string Manufacturer { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
     public VehicleType VehicleType { get; set; }
     public int CurrentKm { get; set; }
     public VehicleStatus Status { get; set; }

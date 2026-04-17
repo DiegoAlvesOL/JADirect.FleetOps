@@ -7,11 +7,11 @@ namespace JADirect.Domain.Models;
 public class WalkaroundHistoryViewModel
 {
     public DateTime CheckDate{ get; set; }
-    public string DriverName { get; set; }
-    public string RegistrationNo { get; set; }
+    public string DriverName { get; set; } = string.Empty;
+    public string RegistrationNo { get; set; } = string.Empty;
     public int Odometer { get; set; }
-    public bool hasDefect { get; set; }
-    public string DefectNotes { get; set; }
+    public bool hasDefect { get; set; } 
+    public string DefectNotes { get; set; } = string.Empty;
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     

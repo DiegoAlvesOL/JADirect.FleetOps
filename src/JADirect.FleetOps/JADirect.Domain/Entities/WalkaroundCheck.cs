@@ -14,7 +14,7 @@ public class WalkaroundCheck
     /// String em formato JSON contendo a lista de itens e seus respectivos estados (Pass/Fail).
     /// Exemplo: [{"item": "Tyres", "status": "Pass"}, ...]
     /// </summary>
-    public string CheckListJSON { get; set; }
+    public string CheckListJSon { get; set; }  = string.Empty;
     public bool HasDefect { get; set; }
     public string? DefectNotes { get; set; }
     public decimal? Latitude { get; set; }
