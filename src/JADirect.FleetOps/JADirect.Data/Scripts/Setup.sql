@@ -1,81 +1,70 @@
 -- Criando o banco de dados
 CREATE DATABASE IF NOT EXISTS ja_direct_db;
 USE ja_direct_db;
-    
+
 -- Tabela de usuário
 CREATE TABLE users(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(100) NOT NULL,
-    surname VARCHAR(100) NOT NULL ,
-    email VARCHAR(150) NOT NULL,
-    phone_number VARCHAR(20) NOT NULL,
-    password_hash VARCHAR (255) NOT NULL,
-    role_id INT NOT NULL,
-    status_id INT NOT NULL,
-    created_at DATETIME NOT NULL,
-    INDEX idx_user_email (email)
+                      id INT AUTO_INCREMENT PRIMARY KEY,
+                      first_name VARCHAR(100) NOT NULL,
+                      surname VARCHAR(100) NOT NULL,
+                      email VARCHAR(150) NOT NULL,
+                      phone_number VARCHAR(20) NOT NULL,
+                      password_hash VARCHAR(255) NOT NULL,
+                      role_id INT NOT NULL,
+                      status_id INT NOT NULL,
+                      created_at DATETIME NOT NULL,
+                      INDEX idx_user_email (email)
 );
 
 -- Tabela de Veículos
 CREATE TABLE vehicles(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    registration_no VARCHAR(20) NOT NULL UNIQUE,
-    manufacturer VARCHAR(50) NOT NULL,
-    model VARCHAR(50) NOT NULL,
-    vehicle_type_id INT NOT NULL,
-    current_km INT NOT NULL DEFAULT 0,
-    status_id INT NOT NULL,
-    created_at DATETIME NOT NULL,
-    INDEX idx_vehicle_reg (registration_no)
+                         id INT AUTO_INCREMENT PRIMARY KEY,
+                         registration_no VARCHAR(20) NOT NULL UNIQUE,
+                         manufacturer VARCHAR(50) NOT NULL,
+                         model VARCHAR(50) NOT NULL,
+                         vehicle_type_id INT NOT NULL,
+                         current_km INT NOT NULL DEFAULT 0,
+                         status_id INT NOT NULL,
+                         created_at DATETIME NOT NULL,
+                         last_walkaround_at DATETIME NULL,
+                         INDEX idx_vehicle_reg (registration_no),
+                         INDEX idx_vehicle_last_check (last_walkaround_at)
 );
 
 -- Tabela de Inspeções (Walkaround Checks)
 CREATE TABLE walkaround_checks(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    check_date DATETIME NOT NULL,
-    user_id INT NOT NULL,
-    vehicle_id INT NOT NULL,
-    odometer INT NOT NULL CHECK (odometer >=0),
-    checklist_json TEXT NOT NULL,
-    has_defect TINYINT(1) NOT NULL DEFAULT 0,
-    defect_notes TEXT,
-    latitude DECIMAL(10,8),
-    longitude DECIMAL(11,8),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
-    INDEX idx_check_date (check_date)
+                                  id INT AUTO_INCREMENT PRIMARY KEY,
+                                  check_date DATETIME NOT NULL,
+                                  user_id INT NOT NULL,
+                                  vehicle_id INT NOT NULL,
+                                  odometer INT NOT NULL CHECK (odometer >= 0),
+                                  checklist_json TEXT NOT NULL,
+                                  has_defect TINYINT(1) NOT NULL DEFAULT 0,
+                                  defect_notes TEXT,
+                                  latitude DECIMAL(10,8),
+                                  longitude DECIMAL(11,8),
+                                  FOREIGN KEY (user_id) REFERENCES users(id),
+                                  FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
+                                  INDEX idx_check_date (check_date)
 );
 
 -- Tabela de Daily Logs
 CREATE TABLE daily_logs(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    log_date DATETIME NOT NULL,
-    user_id INT NOT NULL,
-    vehicle_id INT NOT NULL,
-    deliveries INT NOT NULL DEFAULT 0,
-    collections INT NOT NULL DEFAULT 0,
-    returns INT NOT NULL DEFAULT 0,
-    notes TEXT,
-    created_at DATETIME NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+                           id INT AUTO_INCREMENT PRIMARY KEY,
+                           log_date DATETIME NOT NULL,
+                           user_id INT NOT NULL,
+                           vehicle_id INT NOT NULL,
+                           deliveries INT NOT NULL DEFAULT 0,
+                           collections INT NOT NULL DEFAULT 0,
+                           returns INT NOT NULL DEFAULT 0,
+                           current_odometer INT NULL,
+                           notes TEXT,
+                           created_at DATETIME NOT NULL,
+                           FOREIGN KEY (user_id) REFERENCES users(id),
+                           FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
+    -- Índice simples para cobrir a foreign key de vehicle_id
+                           INDEX idx_daily_logs_vehicle_id (vehicle_id),
+    -- Regra de unicidade: um motorista só pode ter um log por dia,
+    -- independente do veículo utilizado.
+                           CONSTRAINT uq_daily_log_user_date UNIQUE (user_id, log_date)
 );
-
--- Inclusão do campo na tabela vehicles para receber a data d
-ALTER TABLE vehicles
-    ADD COLUMN last_walkaround_at DATETIME NULL AFTER status_id;
-
--- Indice para melhorar a performance do relatório 
-CREATE INDEX idx_vehicle_last_check ON vehicles(last_walkaround_at);
-
-
--- Adicionando a coluna de odômetro como opcional (pode ser NULL)
-ALTER TABLE daily_logs
-    ADD COLUMN current_odometer INT NULL AFTER returns;
-
-
--- Defesa no banco: impede que o mesmo motorista registre dois logs
--- para o mesmo veículo no mesmo dia, independente da aplicação.
-ALTER TABLE daily_logs
-    ADD CONSTRAINT uq_daily_log_user_vehicle_date
-        UNIQUE (user_id, vehicle_id, log_date);

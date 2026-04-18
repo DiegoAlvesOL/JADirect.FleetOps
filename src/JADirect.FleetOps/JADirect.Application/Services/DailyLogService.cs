@@ -26,7 +26,7 @@ public class DailyLogService
         // O motorista só pode registrar o dia atual ou dias anteriores.
         if (log.LogDate.Date > DateTime.Now.Date)
         {
-            return (false, "ou cannot register a log for a future date.");
+            return (false, "You cannot register a log for a future date.");
         }
         
         // REGRA 2: A data escolhida não pode ultrapassar a janela de 7 dias.
@@ -35,12 +35,12 @@ public class DailyLogService
 
         if (daysInThePast > MaximumPastDaysAllowed)
         {
-            return (false, $"You can only register logs up to {{MaximumPastDaysAllowed}} days in the past.");
+            return (false, $"You can only register logs up to {MaximumPastDaysAllowed} days in the past.");
         }
         
         // REGRA 3: Não pode existir um log para o mesmo motorista,
         // mesmo veículo e mesma data. Esta é a defesa contra duplicados.
-        bool logAlreadyExists = _repository.HasLogForData(log.UserId, log.VehicleId, log.LogDate);
+        bool logAlreadyExists = _repository.HasLogForDate(log.UserId, log.LogDate);
 
         if (logAlreadyExists)
         {
