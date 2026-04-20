@@ -6,5 +6,6 @@ namespace JADirect.Domain.Enums;
 public enum VehicleType
 {
     Van = 1,
-    Truck = 2
+    RigidTruck = 2,
+    AticulatedTruck = 3,
 }

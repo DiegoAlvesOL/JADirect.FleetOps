@@ -69,7 +69,7 @@ public class FleetService
             return SetStatus(viewModel, "Red", false, "Walkaround check expired");
         }
         // Regra para CAMINHÕES: Validade apenas para o dia corrente
-        else if (vehicleType == VehicleType.Truck)
+        else if (vehicleType == VehicleType.RigidTruck || vehicleType == VehicleType.AticulatedTruck)
         {
             if (daysSince == 0) // Verde: Feito hoje
             {
