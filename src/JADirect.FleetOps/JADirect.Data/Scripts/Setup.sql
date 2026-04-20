@@ -197,3 +197,52 @@ ORDER BY sort_order;
 -- Esperado: 18 itens em ordem crescente, agrupados por categoria
 
 
+USE ja_direct_db;
+
+-- Tabela de regras de bloqueio de veículo por tenant.
+-- Cada linha define se uma combinação de estado e ação resulta em bloqueio.
+-- Consumida pelo WalkaroundService para calcular o status do veículo
+-- sem nenhuma lógica hardcoded na aplicação.
+CREATE TABLE walkaround_blocking_rules (
+                                           id             INT AUTO_INCREMENT PRIMARY KEY,
+                                           tenant_id      INT NOT NULL DEFAULT 1,
+                                           item_state     VARCHAR(50) NOT NULL,
+                                           action_taken   VARCHAR(50) NOT NULL,
+                                           blocks_vehicle TINYINT NOT NULL DEFAULT 0,
+                                           INDEX idx_blocking_rules_tenant (tenant_id)
+);
+
+
+-- Política inicial JADirect (tenant_id = 1)
+--
+-- A lógica é: o que o motorista encontrou + o que ele fez = bloqueia ou não?
+--
+-- Defect + Resolved       = 0 (motorista resolveu no campo, veiculo segue)
+-- Defect + RequiresGarage = 1 (precisa de atenção técnica, veiculo bloqueado)
+-- Attention + Resolved    = 0 (observação registrada, resolvida, veiculo segue)
+-- Attention + RequiresGarage = 1 (manager precisa avaliar, veiculo bloqueado)
+INSERT INTO walkaround_blocking_rules
+(tenant_id, item_state, action_taken, blocks_vehicle)
+VALUES
+    (1, 'Defect',    'Resolved',        0),
+    (1, 'Defect',    'RequiresGarage',  1),
+    (1, 'Attention', 'Resolved',        0),
+    (1, 'Attention', 'RequiresGarage',  1);
+
+
+-- Verificação 1: as 4 regras com os valores corretos
+SELECT item_state, action_taken, blocks_vehicle
+FROM walkaround_blocking_rules
+WHERE tenant_id = 1
+ORDER BY item_state, action_taken;
+-- Esperado: 4 linhas
+-- Attention + RequiresGarage = 1
+-- Attention + Resolved       = 0
+-- Defect    + RequiresGarage = 1
+-- Defect    + Resolved       = 0
+
+-- Verificação 2: total de regras
+SELECT COUNT(*) as total_regras
+FROM walkaround_blocking_rules;
+-- Esperado: 4
+
