@@ -1,7 +1,9 @@
 namespace JADirect.Domain.Entities;
+
 /// <summary>
 /// Representa uma inspeção de segurança completa (Walkaround Check).
-/// Este objeto armazena o resultado dos 27 itens verificados pelo motorista.
+/// O status do veículo é calculado pelo WalkaroundService com base nas
+/// regras do tenant, não armazenado como campo booleano nesta entidade.
 /// </summary>
 public class WalkaroundCheck
 {
@@ -10,13 +12,23 @@ public class WalkaroundCheck
     public int UserId { get; set; }
     public int VehicleId { get; set; }
     public int Odometer { get; set; }
+
     /// <summary>
-    /// String em formato JSON contendo a lista de itens e seus respectivos estados (Pass/Fail).
-    /// Exemplo: [{"item": "Tyres", "status": "Pass"}, ...]
+    /// Array JSON contendo o resultado de cada item inspecionado.
+    /// Formato de cada elemento:
+    /// {
+    ///   "item": "tyres",
+    ///   "state": "Defect",
+    ///   "actionTaken": "Resolved",
+    ///   "note": "Flat tyre, replaced on site"
+    /// }
+    /// Valores válidos para state: "Good", "Attention", "Defect".
+    /// Valores válidos para actionTaken: "None", "Resolved", "RequiresGarage".
+    /// Note é null quando state é "Good".
     /// </summary>
-    public string CheckListJSon { get; set; }  = string.Empty;
-    public bool HasDefect { get; set; }
-    public string? DefectNotes { get; set; }
+    public string CheckListJson { get; set; } = string.Empty;
+
+    
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
 }
