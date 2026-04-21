@@ -72,6 +72,11 @@ builder.Services.AddScoped<DailyLogService>();
 // Serviços (Camada de Aplicação)
 builder.Services.AddScoped<FleetService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<WalkaroundService>();
+builder.Services.AddScoped<ChecklistItemRepository>();
+builder.Services.AddScoped<BlockingRuleRepository>();
+
+
 
 var app = builder.Build();
 
