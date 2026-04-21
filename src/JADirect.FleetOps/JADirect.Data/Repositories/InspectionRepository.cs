@@ -15,39 +15,76 @@ public class InspectionRepository
     {
         _connectionFactory = connectionFactory;
     } 
-
-    public void Add(int userId, int vehicleId, int odometer, string checklistJson, bool hasDefect, string defectNotes, decimal? latitude, decimal? longitude )
+    
+    /// <summary>
+    /// Persiste uma nova inspeção de walkaround e atualiza o status do veículo.
+    /// O status do veículo e a decisão de bloqueio são calculados pelo WalkaroundService
+    /// antes desta chamada. O repositório apenas grava o que o serviço decidiu.
+    /// </summary>
+    /// <param name="userId">ID do motorista.</param>
+    /// <param name="vehicleId">ID do veículo inspecionado.</param>
+    /// <param name="odometer">Leitura do odômetro.</param>
+    /// <param name="checklistJson">JSON serializado com o resultado de cada item.</param>
+    /// <param name="vehicleStatusId">Status calculado pelo WalkaroundService: 4=bloqueado, 1=operacional.</param>
+    /// <param name="latitude">Latitude GPS. Pode ser nula.</param>
+    /// <param name="longitude">Longitude GPS. Pode ser nula.</param>
+    public void Add(
+        int userId,
+        int vehicleId,
+        int odometer,
+        string checklistJson,
+        int vehicleStatusId,
+        decimal? latitude,
+        decimal? longitude)
     {
         using var connection = _connectionFactory.CreateConnection();
         connection.Open();
-
+        
         using var transaction = connection.BeginTransaction();
         try
         {
-            const string sqlInsert = @"INSERT INTO walkaround_checks(check_date, user_id, vehicle_id, odometer, checklist_json, has_defect, defect_notes, latitude, longitude)
-                                       VALUES(NOW(), @userId, @vehicleId, @odometer, @checkListJson, @hasDefect, @defectNotes, @latitude, @longitude)";
+            // has_defect é inferido do vehicleStatusId para manter compatibilidade
+            // com registros históricos que ainda leem esta coluna.
+            // Coluna defect_notes removida pois as notas agora ficam por item no JSON.
+            const string sqlInsert = @"
+            INSERT INTO walkaround_checks
+                (check_date, user_id, vehicle_id, odometer, checklist_json,
+                 has_defect, latitude, longitude)
+            VALUES
+                (NOW(), @userId, @vehicleId, @odometer, @checklistJson,
+                 @hasDefect, @latitude, @longitude)";
+            
+            using var commandInsert = new MySqlCommand(
+                sqlInsert,
+                (MySqlConnection)connection,
+                (MySqlTransaction)transaction);
 
-            using var commandInsert = new MySqlCommand(sqlInsert, (MySqlConnection)connection, (MySqlTransaction)transaction);
             commandInsert.Parameters.AddWithValue("userId", userId);
             commandInsert.Parameters.AddWithValue("vehicleId", vehicleId);
             commandInsert.Parameters.AddWithValue("odometer", odometer);
-            commandInsert.Parameters.AddWithValue("checkListJson", checklistJson);
-            commandInsert.Parameters.AddWithValue("hasDefect", hasDefect ? 1 : 0);
-            commandInsert.Parameters.AddWithValue("defectNotes", (object?)defectNotes ?? DBNull.Value);
+            commandInsert.Parameters.AddWithValue("checklistJson", checklistJson);
+            // has_defect é true quando o veículo foi bloqueado (status_id = 4)
+            commandInsert.Parameters.AddWithValue("hasDefect", vehicleStatusId == 4 ? 1 : 0);
             commandInsert.Parameters.AddWithValue("latitude", (object?)latitude ?? DBNull.Value);
             commandInsert.Parameters.AddWithValue("longitude", (object?)longitude ?? DBNull.Value);
             commandInsert.ExecuteNonQuery();
-
-            const string sqlUpdate = @"UPDATE vehicles 
-                                       SET status_id = @statusId, 
-                                           last_walkaround_at = NOW() 
-                                       WHERE id = @vehicleId";
             
-            using var commandUpdate = new MySqlCommand(sqlUpdate, (MySqlConnection)connection, (MySqlTransaction)transaction);
-            commandUpdate.Parameters.AddWithValue("statusId", hasDefect ? 4 : 1);
+            // Atualiza o status e a data do último walkaround no veículo
+            const string sqlUpdate = @"
+            UPDATE vehicles
+            SET status_id = @statusId,
+                last_walkaround_at = NOW()
+            WHERE id = @vehicleId";
+
+            using var commandUpdate = new MySqlCommand(
+                sqlUpdate,
+                (MySqlConnection)connection,
+                (MySqlTransaction)transaction);
+            
+            commandUpdate.Parameters.AddWithValue("statusId", vehicleStatusId);
             commandUpdate.Parameters.AddWithValue("vehicleId", vehicleId);
             commandUpdate.ExecuteNonQuery();
-            
+
             transaction.Commit();
         }
         catch
