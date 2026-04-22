@@ -1,4 +1,4 @@
-using System.Text.Json;
+using JADirect.Application.Services;
 using JADirect.Data.Repositories;
 using JADirect.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -7,81 +7,114 @@ using Microsoft.AspNetCore.Mvc;
 namespace JADirect.Web.Controllers;
 
 /// <summary>
-/// Controller responsável pela execução e registro das inspeções de segurança (Walkaround).
+/// Controller responsável pelo walkaround check.
+/// Não contém lógica de negócio, toda a inteligência está no WalkaroundService.
 /// </summary>
 public class WalkaroundController : Controller
 {
+    private readonly WalkaroundService _walkaroundService;
+    private readonly ChecklistItemRepository _checklistItemRepository;
     private readonly InspectionRepository _inspectionRepository;
     private readonly VehicleRepository _vehicleRepository;
 
+    
+    private const int JaDirectTenantId = 1;
+
     /// <summary>
-    /// Construtor que recebe as dependências necessárias via Injeção de Dependência.
+    /// Construtor que recebe as dependências via Injeção de Dependência.
     /// </summary>
-    /// <param name="inspectionRepository">Repositório de acesso ao banco para inspeções.</param>
-    /// <param name="vehicleRepository">Repositório de acesso ao banco para veículos.</param>
-    public WalkaroundController(InspectionRepository inspectionRepository, VehicleRepository vehicleRepository)
+    public WalkaroundController(
+        WalkaroundService walkaroundService,
+        ChecklistItemRepository checklistItemRepository,
+        InspectionRepository inspectionRepository,
+        VehicleRepository vehicleRepository)
     {
+        _walkaroundService = walkaroundService;
+        _checklistItemRepository = checklistItemRepository;
         _inspectionRepository = inspectionRepository;
         _vehicleRepository = vehicleRepository;
     }
-    
+
     /// <summary>
-    /// Exibe a tela de criação de uma nova inspeção de segurança.
+    /// Exibe o formulário de walkaround com os itens corretos para o tipo do veículo.
     /// </summary>
-    /// <returns></returns>
     [HttpGet]
     public IActionResult Create()
     {
         int? vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId");
+
         if (!vehicleId.HasValue)
         {
             return RedirectToAction("SelectVehicle", "Driver");
         }
-        return View();
+
+        // Carrega o veículo para obter o tipo e buscar os itens corretos do checklist
+        var vehicle = _vehicleRepository.GetById(vehicleId.Value);
+
+        if (vehicle == null)
+        {
+            return RedirectToAction("SelectVehicle", "Driver");
+        }
+
+        int vehicleTypeId = (int)vehicle.VehicleType;
+        var checklistItems = _checklistItemRepository
+            .GetItemsByVehicleType(JaDirectTenantId, vehicleTypeId);
+
+        return View(checklistItems);
     }
-    
+
     /// <summary>
-    /// Processa o envio do formulário de inspeção e delega a persistência unificada ao repositório.
+    /// Processa o envio do formulário delegando ao WalkaroundService.
+    /// Recebe a lista de resultados via model binding indexado.
     /// </summary>
-    /// <param name="form">Coleção de dados enviados pelo formulário.</param>
-    /// <param name="latitude">Latitude capturada via JS.</param>
-    /// <param name="longitude">Longitude capturada via JS.</param>
-    /// <returns></returns>
+    /// <param name="items">Lista de resultados dos itens preenchidos pelo motorista.</param>
+    /// <param name="odometer">Leitura do odômetro informada no formulário.</param>
+    /// <param name="latitude">Latitude capturada via GPS. Pode ser nula.</param>
+    /// <param name="longitude">Longitude capturada via GPS. Pode ser nula.</param>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Create(IFormCollection form, decimal? latitude, decimal? longitude)
+    public IActionResult Create(
+        List<ChecklistItemResult> items,
+        int odometer,
+        decimal? latitude,
+        decimal? longitude)
     {
-        // Recuperação de contexto da sessão
         int vehicleId = HttpContext.Session.GetInt32("SelectedVehicleId") ?? 0;
         int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-        
-        // Captura de dados obrigatórios do formulário
-        int odometer = int.Parse(form["Odometer"]);
-        string defectNotes = form["DefectNotes"];
-        
-        // LISTA DE CAMPOS FIXOS: Ignoramos estes para capturar apenas as perguntas do checklist
-        var fixedFields = new[] { "Odometer", "DefectNotes", "__RequestVerificationToken", "Latitude", "Longitude" };
 
-        // Filtragem e Serialização JSON das respostas
-        var checklistAnswers = form.Keys
-            .Where(k => !fixedFields.Contains(k))
-            .ToDictionary(k => k, k => form[k].ToString());
+        if (vehicleId == 0 || userId == 0)
+        {
+            return RedirectToAction("SelectVehicle", "Driver");
+        }
+        
+        var (vehicleBlocked, errorMessage) = _walkaroundService.SubmitInspection(
+            userId,
+            vehicleId,
+            JaDirectTenantId,
+            odometer,
+            items,
+            latitude,
+            longitude);
 
-        string json = JsonSerializer.Serialize(checklistAnswers);
-        
-        // Identifica se houve falha em algum item para definir o novo status do veículo
-        bool hasDefect = checklistAnswers.Values.Any(v => v == "Fail");
-        
-        // O repositório agora executa o fluxo unificado: salva o log e atualiza o veículo (status e data)
-        _inspectionRepository.Add(userId, vehicleId, odometer, json, hasDefect, defectNotes, latitude, longitude);
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            // Recarrega a View com os itens em caso de erro de validação
+            var vehicle = _vehicleRepository.GetById(vehicleId);
+            int vehicleTypeId = vehicle != null ? (int)vehicle.VehicleType : 1;
+            var checklistItems = _checklistItemRepository
+                .GetItemsByVehicleType(JaDirectTenantId, vehicleTypeId);
+
+            ModelState.AddModelError("", errorMessage);
+            return View(checklistItems);
+        }
 
         return RedirectToAction("Index", "Home");
     }
 
     /// <summary>
-    /// Exibe o histórico de inspeções para auditoria. Acesso exclusivo para Managers.
+    /// Exibe o histórico de inspeções. Acesso exclusivo para Managers.
     /// </summary>
-    /// <param name="id">O ID do veículo (opcional). Se nulo, exibe o histórico de toda a frota.</param>
+    /// <param name="id">ID do veículo. Se nulo, exibe o histórico de toda a frota.</param>
     [Authorize(Roles = "Manager")]
     [HttpGet]
     public IActionResult History(int? id)
@@ -90,20 +123,16 @@ public class WalkaroundController : Controller
 
         if (id.HasValue)
         {
-            // Caso o Manager tenha clicado em um veículo específico no Dashboard
             historyData = _inspectionRepository.GetHistoryByVehicleId(id.Value);
-        
             var vehicle = _vehicleRepository.GetById(id.Value);
             ViewBag.RegistrationNo = vehicle != null ? vehicle.RegistrationNo : "Selected Vehicle";
         }
         else
         {
-            // Caso o Manager acesse o menu lateral "History" sem filtro prévio
             historyData = _inspectionRepository.GetAllHistory();
             ViewBag.RegistrationNo = "All Fleet Vehicles";
         }
 
-        // Retornamos a View tipada com a lista, sem redirecionamentos para 'SelectVehicle'
         return View(historyData);
     }
 }
