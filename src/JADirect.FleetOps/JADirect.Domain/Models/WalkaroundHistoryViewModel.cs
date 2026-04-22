@@ -10,12 +10,13 @@ public class WalkaroundHistoryViewModel
     public string DriverName { get; set; } = string.Empty;
     public string RegistrationNo { get; set; } = string.Empty;
     public int Odometer { get; set; }
-    public bool hasDefect { get; set; } 
-    public string DefectNotes { get; set; } = string.Empty;
+    public List<ChecklistItemResult> Items { get; set; } = new List<ChecklistItemResult>();
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
-    
-    public bool IsPassed => !hasDefect;
+    public bool VehicleWasBlocked => Items.Any(item =>
+        (item.State == "Defect" || item.State == "Attention") &&
+        item.ActionTaken == "RequiresGarage");
+    public bool IsPassed => !VehicleWasBlocked;
     
     public string? Location => Latitude.HasValue && Longitude.HasValue ?
         $"https://www.google.com/maps?q={Latitude},{Longitude}" :
