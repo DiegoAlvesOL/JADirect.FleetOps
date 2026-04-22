@@ -1,24 +1,137 @@
 @* ARQUIVO: _CheckItem.cshtml (Partial View)
-    OBJETIVO: Componente reutilizável para itens do checklist.
-    RELAÇÃO: Este arquivo é o "CLIENTE" (Filho). Ele define o layout de cada pergunta.
-*@
+   OBJETIVO: Componente reutilizável para cada item do checklist de walkaround.
+   Suporta três estados: Good, Attention, Defect.
+   Estados Attention e Defect revelam campo de nota e botões de ação inline.
+   Dados transmitidos via model binding indexado para List<ChecklistItemResult> no controller.
+   RELAÇÃO: Filho de Create.cshtml. Recebe ChecklistItem + Index via Model. *@
 
-<div class="mb-4">
-    <label class="form-label d-block fw-bold text-secondary">@Model.Label</label>
-    <div class="d-flex justify-content-between">
-        
-        @* PASS - JOIA PARA CIMA *@
-        <input type="radio" class="btn-check-custom" name="@Model.ID" id="@(Model.ID)_pass" value="Pass" required>
-        <label class="option-card" for="@(Model.ID)_pass">
-            <i class="bi bi-hand-thumbs-up-fill d-block fs-4 mb-1"></i>
-            PASS
+@{
+    var item = (JADirect.Domain.Entities.ChecklistItem)Model.Item;
+    int index = (int)Model.Index;
+    string fieldPrefix = $"items[{index}]";
+}
+
+<div class="check-item-card" id="card_@(item.Id)" style="
+    background: var(--bs-white);
+    border: 1.5px solid #e9ecef;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;">
+
+    @* Campos hidden para model binding — sempre enviados ao controller *@
+    <input type="hidden" name="@(fieldPrefix).ItemId"  value="@item.Id" />
+    <input type="hidden" name="@(fieldPrefix).Label"    value="@item.Label" />
+    <input type="hidden" name="@(fieldPrefix).Category" value="@item.Category" />
+
+    @* Campo de State — atualizado pelo JavaScript ao clicar nos botões *@
+    <input type="hidden"
+           name="@(fieldPrefix).State"
+           id="state_@(item.Id)"
+           value="" />
+
+    @* Campo de ActionTaken — atualizado pelo JavaScript ao clicar nos botões de ação *@
+    <input type="hidden"
+           name="@(fieldPrefix).ActionTaken"
+           id="action_@(item.Id)"
+           value="" />
+
+    @* Campo de Note — preenchido pelo motorista quando há problema *@
+    <input type="hidden"
+           name="@(fieldPrefix).Note"
+           id="note_hidden_@(item.Id)"
+           value="" />
+
+    @* Cabeçalho do item *@
+    <div style="padding: 14px 16px 10px;">
+        <p style="font-weight: 600; color: #343a40; font-size: 0.95rem; margin: 0;">
+            @item.Label
+        </p>
+    </div>
+
+    @* Botões de estado: Good, Attention, Defect *@
+    @* type="button" é obrigatório para não submeter o formulário ao clicar *@
+    <div style="display: flex; gap: 8px; padding: 0 16px 14px;">
+
+        <button type="button"
+                id="btn_good_@(item.Id)"
+                onclick="selectState('@item.Id', 'Good')"
+                style="flex: 1; padding: 10px 6px; border-radius: 10px;
+                       border: 1.5px solid #dee2e6; background: #fff;
+                       font-size: 0.82rem; font-weight: 600; color: #adb5bd;
+                       cursor: pointer; transition: all 0.15s ease;">
+            Good
+        </button>
+
+        <button type="button"
+                id="btn_attention_@(item.Id)"
+                onclick="selectState('@item.Id', 'Attention')"
+                style="flex: 1; padding: 10px 6px; border-radius: 10px;
+                       border: 1.5px solid #dee2e6; background: #fff;
+                       font-size: 0.82rem; font-weight: 600; color: #adb5bd;
+                       cursor: pointer; transition: all 0.15s ease;">
+            Attention
+        </button>
+
+        <button type="button"
+                id="btn_defect_@(item.Id)"
+                onclick="selectState('@item.Id', 'Defect')"
+                style="flex: 1; padding: 10px 6px; border-radius: 10px;
+                       border: 1.5px solid #dee2e6; background: #fff;
+                       font-size: 0.82rem; font-weight: 600; color: #adb5bd;
+                       cursor: pointer; transition: all 0.15s ease;">
+            Defect
+        </button>
+
+    </div>
+
+    @* Área de nota e ação — visível apenas quando Attention ou Defect *@
+    <div id="details_@(item.Id)"
+         style="display: none; border-top: 1px solid #e9ecef; padding: 14px 16px;">
+
+        <label style="font-size: 0.8rem; font-weight: 600; color: #6c757d;
+                      margin-bottom: 6px; display: block;">
+            <span id="note_label_@(item.Id)">Describe what you found</span>
+            <span style="color: #dc3545;"> *</span>
         </label>
 
-        @* FAIL - JOIA PARA BAIXO *@
-        <input type="radio" class="btn-check-custom" name="@Model.ID" id="@(Model.ID)_fail" value="Fail">
-        <label class="option-card" for="@(Model.ID)_fail">
-            <i class="bi bi-hand-thumbs-down-fill d-block fs-4 mb-1"></i>
-            FAIL
+        <textarea id="note_input_@(item.Id)"
+                  rows="2"
+                  placeholder="Add a note..."
+                  oninput="updateNote('@item.Id', this.value)"
+                  style="width: 100%; border: 1.5px solid #dee2e6;
+                         border-radius: 10px; padding: 10px 12px;
+                         font-size: 0.9rem; resize: none;
+                         margin-bottom: 12px; font-family: inherit;"></textarea>
+
+        <label style="font-size: 0.8rem; font-weight: 600; color: #6c757d;
+                      margin-bottom: 8px; display: block;">
+            What action was taken?
+            <span style="color: #dc3545;"> *</span>
         </label>
+
+        <div style="display: flex; gap: 8px;">
+
+            <button type="button"
+                    id="btn_resolved_@(item.Id)"
+                    onclick="selectAction('@item.Id', 'Resolved')"
+                    style="flex: 1; padding: 9px 6px; border-radius: 10px;
+                           border: 1.5px solid #dee2e6; background: #fff;
+                           font-size: 0.82rem; font-weight: 600; color: #adb5bd;
+                           cursor: pointer; transition: all 0.15s ease;">
+                Resolved in field
+            </button>
+
+            <button type="button"
+                    id="btn_garage_@(item.Id)"
+                    onclick="selectAction('@item.Id', 'RequiresGarage')"
+                    style="flex: 1; padding: 9px 6px; border-radius: 10px;
+                           border: 1.5px solid #dee2e6; background: #fff;
+                           font-size: 0.82rem; font-weight: 600; color: #adb5bd;
+                           cursor: pointer; transition: all 0.15s ease;">
+                Needs garage
+            </button>
+
+        </div>
     </div>
 </div>
