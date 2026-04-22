@@ -1,23 +1,22 @@
-@* ARQUIVO: Create.cshtml (Main View)
-    OBJETIVO: Interface principal do módulo de Walkaround com seções expansíveis e progresso.
-    RELAÇÃO: Este arquivo é o "HOST" (Pai). Ele gerencia a estrutura global e a lógica de UI.
-*@
+@* ARQUIVO: Create.cshtml
+   OBJETIVO: Formulário principal do walkaround check.
+   Itens carregados dinamicamente do banco via IEnumerable<ChecklistItem>.
+   Agrupamento por Category feito via LINQ no Razor.
+   JavaScript centralizado controla estado visual e status do veículo em tempo real. *@
 
-@model dynamic
+@using JADirect.Domain.Entities
+@model IEnumerable<ChecklistItem>
 
 <style>
-    /* Estrutura das Seções (Acordeão) */
-    .checklist-section {
+    .section-card {
         border: 2px solid #e9ecef;
         border-radius: 15px;
         margin-bottom: 20px;
         background-color: #fff;
         overflow: hidden;
-        transition: all 0.3s ease;
     }
-
     .section-header {
-        padding: 20px;
+        padding: 18px 20px;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
@@ -25,95 +24,85 @@
         background-color: #f8f9fa;
         user-select: none;
     }
-
     .section-title {
         font-weight: bold;
-        color: #008080; /* Teal Padrão */
-        font-size: 1.1rem;
+        color: #008080;
+        font-size: 1rem;
         margin: 0;
     }
-
     .section-content {
-        padding: 20px;
+        padding: 16px 16px 4px;
         display: none;
         border-top: 1px solid #e9ecef;
     }
-
-    .section-content.active {
-        display: block;
-        animation: fadeIn 0.3s ease;
+    .section-content.active { display: block; }
+    .progress-container {
+        width: 70px; height: 7px;
+        background: #dee2e6;
+        border-radius: 10px;
+        overflow: hidden;
     }
-
-    @Html.Raw("@")keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+    .progress-bar-fill {
+        height: 100%; width: 0%;
+        background: #008080;
+        transition: width 0.3s ease;
     }
-
-    /* Barra de Progresso por Seção */
-    .progress-container { width: 80px; height: 8px; background: #dee2e6; border-radius: 10px; overflow: hidden; }
-    .progress-bar-fill { height: 100%; width: 0%; background: #008080; transition: width 0.4s ease; }
-    .progress-text { font-size: 0.75rem; color: #6c757d; font-weight: bold; margin-left: 10px; min-width: 35px; }
-
-    /* ESTILO DOS BOTÕES (PASS/FAIL) */
-    .option-card {
-        border: 2px solid #dee2e6;
-        border-radius: 12px;
-        padding: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        width: 48%;
-        text-align: center;
+    .progress-text {
+        font-size: 0.72rem;
+        color: #6c757d;
         font-weight: bold;
-        color: #adb5bd;
-        background-color: #fff;
+        margin-left: 8px;
+        min-width: 30px;
     }
-
-    .btn-check-custom { display: none; }
-
-    /* Quando PASS é clicado: Usa o TEAL unificado */
-    .btn-check-custom[value="Pass"]:checked + .option-card {
-        background-color: #008080;
-        color: white;
-        border-color: #008080;
-        box-shadow: 0 4px 8px rgba(0,128,128,0.2);
+    .status-bar {
+        border-radius: 12px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1.5px solid #e9ecef;
+        background: #f8f9fa;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
     }
-
-    /* Quando FAIL é clicado: Vermelho sério */
-    .btn-check-custom[value="Fail"]:checked + .option-card {
-        background-color: #d93025;
-        color: white;
-        border-color: #d93025;
-        box-shadow: 0 4px 8px rgba(217,48,37,0.2);
+    .status-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: #adb5bd;
+        flex-shrink: 0;
+        transition: background 0.3s;
     }
-
-    .btn-submit {
-        min-height: 70px;
-        border-radius: 15px;
-        font-size: 1.3rem;
+    .btn-submit-wk {
+        min-height: 64px;
+        border-radius: 14px;
+        font-size: 1.1rem;
         border: none;
         background-color: #008080;
         color: white;
-        transition: all 0.2s;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        font-weight: 700;
+        width: 100%;
+        transition: background 0.2s;
     }
-
-    .btn-submit:hover { background-color: #006666; color: white; }
+    .btn-submit-wk:hover:not(:disabled) { background-color: #006666; }
+    .btn-submit-wk:disabled { background-color: #adb5bd; cursor: not-allowed; }
 </style>
 
 <div class="container mt-4 mb-5">
-    @* Navegação Superior *@
     <div class="mb-3">
-        <a asp-controller="Driver" asp-action="SelectVehicle" class="text-decoration-none fw-bold" style="color: #008080;">
+        <a asp-controller="Driver" asp-action="SelectVehicle"
+           class="text-decoration-none fw-bold" style="color: #008080;">
             <i class="bi bi-arrow-left"></i> Back to Vehicle Selection
         </a>
     </div>
 
-    @* Cabeçalho conforme solicitado *@
     <div class="text-center mb-4">
-        <h2 class="fw-bold" style="color: #008080;"><i class="bi bi-clipboard-check"></i> Vehicle Inspection</h2>
+        <h2 class="fw-bold" style="color: #008080;">
+            <i class="bi bi-clipboard-check"></i> Vehicle Inspection
+        </h2>
         <p class="text-muted px-3">
-            Walk around check items to be checked by the driver before and while driving.
-            Select <span class="text-success fw-bold">Pass</span> (satisfactory) or <span class="text-danger fw-bold">Fail</span> (defect noted).
+            Select <strong>Good</strong> if the item is satisfactory,
+            <strong>Attention</strong> if there is an observation to note,
+            or <strong>Defect</strong> if a fault was found.
         </p>
     </div>
 
@@ -122,166 +111,290 @@
         <input type="hidden" name="Latitude" id="lat" />
         <input type="hidden" name="Longitude" id="lon" />
 
-        <div class="checklist-section shadow-sm" id="sec-1">
-            <div class="section-header" onclick="toggleSection('sec-1')">
-                <p class="section-title">1. Exterior & Structure</p>
-                <div class="d-flex align-items-center">
-                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
-                    <span class="progress-text">0/7</span>
+        @* Agrupamento dinâmico por Category via LINQ — zero itens hardcoded *@
+        @{
+            var groupedItems = Model.GroupBy(i => i.Category).ToList();
+            int globalIndex = 0;
+        }
+
+        @foreach (var group in groupedItems)
+        {
+            var sectionId = $"sec_{group.Key.Replace(" ", "_").Replace("&", "and")}";
+            var itemCount = group.Count();
+
+            <div class="section-card shadow-sm" id="@sectionId">
+                <div class="section-header" onclick="toggleSection('@sectionId')">
+                    <p class="section-title">@group.Key</p>
+                    <div class="d-flex align-items-center">
+                        <div class="progress-container">
+                            <div class="progress-bar-fill" id="prog_@sectionId"></div>
+                        </div>
+                        <span class="progress-text" id="txt_@sectionId">0/@itemCount</span>
+                    </div>
+                </div>
+                <div class="section-content @(group == groupedItems.First() ? "active" : "")">
+                    @foreach (var item in group)
+                    {
+                        @await Html.PartialAsync("_CheckItem", new { Item = item, Index = globalIndex })
+                        globalIndex++;
+                    }
                 </div>
             </div>
-            <div class="section-content active">
-                @await Html.PartialAsync("_CheckItem", new { ID = "tyres", Label = "Tyres condition, inflation & fixings" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "lights", Label = "Lights, indicators & reflectors" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "tax_discs", Label = "CVRT tax & insurance discs" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "bumpers", Label = "Bumpers & sideguards" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "plates", Label = "Number plates & marker plates" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "mirrors", Label = "Mirrors & Windows" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "fuel_cap", Label = "Fuel cap secure" })
+        }
+
+        @* Odômetro *@
+        <div class="section-card p-4 shadow-sm">
+            <label class="form-label fw-bold">
+                <i class="bi bi-speedometer2"></i> Current Odometer Reading
+            </label>
+            <input type="number" name="Odometer"
+                   class="form-control form-control-lg border-2"
+                   required min="0" placeholder="Enter current KM" />
+        </div>
+
+        @* Barra de status em tempo real *@
+        <div class="status-bar" id="statusBar">
+            <div class="status-dot" id="statusDot"></div>
+            <div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #343a40;"
+                     id="statusText">Not started</div>
+                <div style="font-size: 0.78rem; color: #6c757d;"
+                     id="statusSub">Select a state for each item to continue</div>
             </div>
         </div>
 
-        <div class="checklist-section shadow-sm" id="sec-2">
-            <div class="section-header" onclick="toggleSection('sec-2')">
-                <p class="section-title">2. Engine & Fluids</p>
-                <div class="d-flex align-items-center">
-                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
-                    <span class="progress-text">0/4</span>
-                </div>
-            </div>
-            <div class="section-content">
-                @await Html.PartialAsync("_CheckItem", new { ID = "fluids", Label = "Oil, water, washer & fuel levels" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "leaks", Label = "Fuel / Oil leaks" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "exhaust", Label = "Exhaust & Smoke emission" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "battery", Label = "Wiring & battery" })
-            </div>
-        </div>
-
-        <div class="checklist-section shadow-sm" id="sec-3">
-            <div class="section-header" onclick="toggleSection('sec-3')">
-                <p class="section-title">3. Cab & Controls</p>
-                <div class="d-flex align-items-center">
-                    <div class="progress-container"><div class="progress-bar-fill"></div></div>
-                    <span class="progress-text">0/7</span>
-                </div>
-            </div>
-            <div class="section-content">
-                @await Html.PartialAsync("_CheckItem", new { ID = "wipers", Label = "Windscreen wipers & washers" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "horn", Label = "Horn" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "seats", Label = "Drivers seat & seat belts" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "steering", Label = "Steering controls & operation" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "brakes", Label = "Brake controls & operation" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "abs_warning", Label = "ABS/EBS & instruments/gauges" })
-                @await Html.PartialAsync("_CheckItem", new { ID = "load", Label = "Load security & distribution" })
-            </div>
-        </div>
-
-        <div class="checklist-section shadow-sm p-4">
-            <label class="form-label fw-bold"><i class="bi bi-speedometer2"></i> Current Odometer Reading</label>
-            <input type="number" name="Odometer" class="form-control form-control-lg border-2" required min="0" placeholder="Enter current KM">
-        </div>
-
-        <div id="defectNotesContainer" style="display: none;" class="checklist-section border-danger p-4">
-            <label class="form-label fw-bold text-danger">Defect Description</label>
-            <textarea name="DefectNotes" id="DefectNotes" class="form-control" rows="3" placeholder="Describe the problem..."></textarea>
-        </div>
-
-        <div class="px-2">
-            @* ALTERADO: adicionado id="submitBtn" para permitir controle do estado via JavaScript *@
-            <button type="submit" id="submitBtn" class="btn btn-submit w-100 fw-bold shadow">
-                SUBMIT INSPECTION
-            </button>
-        </div>
+        <button type="submit" id="submitBtn" class="btn-submit-wk" disabled>
+            Submit Inspection
+        </button>
     </form>
 </div>
 
 @section Scripts {
 <script>
-    // Função para Expandir/Recolher seções
+    var totalItems = @Model.Count();
+
     function toggleSection(sectionId) {
-        const section = document.getElementById(sectionId);
-        const content = section.querySelector('.section-content');
-        const isActive = content.classList.contains('active');
+        var content = document.querySelector('#' + sectionId + ' .section-content');
+        var isActive = content.classList.contains('active');
+        document.querySelectorAll('.section-content').forEach(function(c) {
+            c.classList.remove('active');
+        });
+        if (!isActive) { content.classList.add('active'); }
+    }
 
-        // Comportamento de Acordeão: fecha as outras se quiser focar em uma
-        document.querySelectorAll('.section-content').forEach(c => c.classList.remove('active'));
+    function selectState(itemId, state) {
+        document.getElementById('state_' + itemId).value = state;
+        document.getElementById('action_' + itemId).value = state === 'Good' ? 'None' : '';
+        document.getElementById('note_hidden_' + itemId).value = '';
 
-        if (!isActive) {
-            content.classList.add('active');
+        var card = document.getElementById('card_' + itemId);
+        var details = document.getElementById('details_' + itemId);
+        var noteInput = document.getElementById('note_input_' + itemId);
+        var noteLabel = document.getElementById('note_label_' + itemId);
+
+        resetActionButtons(itemId);
+        if (noteInput) { noteInput.value = ''; }
+
+        if (state === 'Good') {
+            card.style.borderColor = '#3B6D11';
+            details.style.display = 'none';
+        } else if (state === 'Attention') {
+            card.style.borderColor = '#BA7517';
+            details.style.display = 'block';
+            noteLabel.textContent = 'Describe what you observed';
+        } else {
+            card.style.borderColor = '#A32D2D';
+            details.style.display = 'block';
+            noteLabel.textContent = 'Describe the defect found';
+        }
+
+        updateButtonStyles(itemId, state);
+        refreshProgressAndStatus();
+    }
+
+    function selectAction(itemId, action) {
+        document.getElementById('action_' + itemId).value = action;
+        resetActionButtons(itemId);
+
+        var btnResolved = document.getElementById('btn_resolved_' + itemId);
+        var btnGarage = document.getElementById('btn_garage_' + itemId);
+
+        if (action === 'Resolved') {
+            btnResolved.style.background = '#E1F5EE';
+            btnResolved.style.borderColor = '#0F6E56';
+            btnResolved.style.color = '#085041';
+        } else {
+            btnGarage.style.background = '#FAECE7';
+            btnGarage.style.borderColor = '#993C1D';
+            btnGarage.style.color = '#712B13';
+        }
+
+        refreshProgressAndStatus();
+    }
+
+    function updateNote(itemId, value) {
+        document.getElementById('note_hidden_' + itemId).value = value;
+    }
+
+    function resetActionButtons(itemId) {
+        var btnResolved = document.getElementById('btn_resolved_' + itemId);
+        var btnGarage = document.getElementById('btn_garage_' + itemId);
+        if (!btnResolved || !btnGarage) { return; }
+        btnResolved.style.background = '#fff';
+        btnResolved.style.borderColor = '#dee2e6';
+        btnResolved.style.color = '#adb5bd';
+        btnGarage.style.background = '#fff';
+        btnGarage.style.borderColor = '#dee2e6';
+        btnGarage.style.color = '#adb5bd';
+    }
+
+    function updateButtonStyles(itemId, state) {
+        var buttons = {
+            'Good':      document.getElementById('btn_good_' + itemId),
+            'Attention': document.getElementById('btn_attention_' + itemId),
+            'Defect':    document.getElementById('btn_defect_' + itemId)
+        };
+
+        Object.keys(buttons).forEach(function(key) {
+            buttons[key].style.background   = '#fff';
+            buttons[key].style.borderColor  = '#dee2e6';
+            buttons[key].style.color        = '#adb5bd';
+        });
+
+        if (state === 'Good') {
+            buttons['Good'].style.background  = '#EAF3DE';
+            buttons['Good'].style.borderColor = '#3B6D11';
+            buttons['Good'].style.color       = '#27500A';
+        } else if (state === 'Attention') {
+            buttons['Attention'].style.background  = '#FAEEDA';
+            buttons['Attention'].style.borderColor = '#854F0B';
+            buttons['Attention'].style.color       = '#633806';
+        } else {
+            buttons['Defect'].style.background  = '#FCEBEB';
+            buttons['Defect'].style.borderColor = '#A32D2D';
+            buttons['Defect'].style.color       = '#791F1F';
         }
     }
 
-    // Função de Progresso e Validação
-    function refreshUI() {
-        document.querySelectorAll('.checklist-section[id^="sec-"]').forEach(section => {
-            const total = section.querySelectorAll('.mb-4').length;
-            const checked = section.querySelectorAll('input[type="radio"]:checked').length;
-            const percentage = total > 0 ? (checked / total) * 100 : 0;
+    function refreshProgressAndStatus() {
+        var allStateInputs = document.querySelectorAll('input[id^="state_"]');
+        var checkedCount = 0;
+        var hasBlockingItem = false;
+        var hasAttentionItem = false;
+        var actionsNeeded = false;
 
-            const bar = section.querySelector('.progress-bar-fill');
-            const text = section.querySelector('.progress-text');
+        allStateInputs.forEach(function(input) {
+            var itemId = input.id.replace('state_', '');
+            var state  = input.value;
+            var actionEl = document.getElementById('action_' + itemId);
+            var action = actionEl ? actionEl.value : '';
 
-            bar.style.width = percentage + '%';
-            text.innerText = checked + '/' + total;
+            if (state !== '') { checkedCount++; }
 
-            // Muda a cor da barra para verde pleno quando termina a seção
-            bar.style.backgroundColor = (percentage === 100) ? "#198754" : "#008080";
-        });
-
-        // Lógica do campo de defeito (Fail)
-        const hasFail = Array.from(document.querySelectorAll('input[value="Fail"]')).some(r => r.checked);
-        const container = document.getElementById('defectNotesContainer');
-        const input = document.getElementById('DefectNotes');
-
-        container.style.display = hasFail ? 'block' : 'none';
-        input.required = hasFail;
-    }
-    
-    function enableSubmitButton() {
-        const submitButton = document.getElementById('submitBtn');
-        submitButton.disabled = false;
-        submitButton.innerText = 'SUBMIT INSPECTION';
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-
-        // Monitorar cliques nos rádios
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('btn-check-custom')) {
-                refreshUI();
+            if (state === 'Attention' || state === 'Defect') {
+                if (action === '' || action === 'None') { actionsNeeded = true; }
+                if (action === 'RequiresGarage')        { hasBlockingItem = true; }
+                if (state === 'Attention' && action === 'Resolved') { hasAttentionItem = true; }
             }
         });
-        
-        refreshUI();
 
-        
+        updateSectionProgress();
+
+        var statusDot  = document.getElementById('statusDot');
+        var statusText = document.getElementById('statusText');
+        var statusSub  = document.getElementById('statusSub');
+        var statusBar  = document.getElementById('statusBar');
+        var submitBtn  = document.getElementById('submitBtn');
+        var allDone    = checkedCount === totalItems;
+
+        if (!allDone) {
+            statusDot.style.background  = '#adb5bd';
+            statusText.textContent      = 'In progress';
+            statusSub.textContent       = checkedCount + ' of ' + totalItems + ' items checked';
+            statusBar.style.background  = '#f8f9fa';
+            statusBar.style.borderColor = '#e9ecef';
+            submitBtn.disabled          = true;
+            return;
+        }
+
+        if (actionsNeeded) {
+            statusDot.style.background  = '#BA7517';
+            statusText.textContent      = 'Action required';
+            statusSub.textContent       = 'Select an action for each flagged item';
+            statusBar.style.background  = '#FAEEDA';
+            statusBar.style.borderColor = '#BA7517';
+            submitBtn.disabled          = true;
+            return;
+        }
+
+        if (hasBlockingItem) {
+            statusDot.style.background   = '#A32D2D';
+            statusText.textContent       = 'Vehicle will be blocked';
+            statusSub.textContent        = 'One or more issues require garage attention';
+            statusBar.style.background   = '#FCEBEB';
+            statusBar.style.borderColor  = '#A32D2D';
+            submitBtn.disabled           = false;
+            submitBtn.textContent        = 'Submit and block vehicle';
+            submitBtn.style.background   = '#A32D2D';
+        } else if (hasAttentionItem) {
+            statusDot.style.background   = '#BA7517';
+            statusText.textContent       = 'Vehicle operational — issues noted';
+            statusSub.textContent        = 'All issues resolved in field';
+            statusBar.style.background   = '#FAEEDA';
+            statusBar.style.borderColor  = '#BA7517';
+            submitBtn.disabled           = false;
+            submitBtn.textContent        = 'Submit Inspection';
+            submitBtn.style.background   = '#008080';
+        } else {
+            statusDot.style.background   = '#3B6D11';
+            statusText.textContent       = 'Vehicle clear — ready to operate';
+            statusSub.textContent        = 'All items passed';
+            statusBar.style.background   = '#EAF3DE';
+            statusBar.style.borderColor  = '#3B6D11';
+            submitBtn.disabled           = false;
+            submitBtn.textContent        = 'Submit Inspection';
+            submitBtn.style.background   = '#008080';
+        }
+    }
+
+    function updateSectionProgress() {
+        document.querySelectorAll('.section-card[id^="sec_"]').forEach(function(section) {
+            var stateInputs = section.querySelectorAll('input[id^="state_"]');
+            var total   = stateInputs.length;
+            var checked = Array.from(stateInputs).filter(function(i) {
+                return i.value !== '';
+            }).length;
+            var percentage = total > 0 ? (checked / total) * 100 : 0;
+            var sectionId  = section.id;
+            var bar = document.getElementById('prog_' + sectionId);
+            var txt = document.getElementById('txt_'  + sectionId);
+            if (bar) { bar.style.width    = percentage + '%'; }
+            if (txt) { txt.textContent    = checked + '/' + total; }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
         if (navigator.geolocation) {
+            var submitButton = document.getElementById('submitBtn');
+            submitButton.textContent = 'Getting GPS location...';
 
-            
-            const submitButton = document.getElementById('submitBtn');
-            submitButton.disabled = true;
-            submitButton.innerText = 'Getting GPS location...';
-
-            
-            const gpsTimeoutIdentifier = setTimeout(function() {
-                enableSubmitButton();
+            var gpsTimeout = setTimeout(function() {
+                submitButton.textContent = 'Submit Inspection';
+                refreshProgressAndStatus();
             }, 5000);
-            
+
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-
-                    clearTimeout(gpsTimeoutIdentifier);
+                    clearTimeout(gpsTimeout);
                     document.getElementById('lat').value = position.coords.latitude;
                     document.getElementById('lon').value = position.coords.longitude;
-                    enableSubmitButton();
+                    refreshProgressAndStatus();
                 },
-                function(error) {
-
-                    clearTimeout(gpsTimeoutIdentifier);
-                    enableSubmitButton();
+                function() {
+                    clearTimeout(gpsTimeout);
+                    refreshProgressAndStatus();
                 }
             );
-
         }
     });
 </script>
