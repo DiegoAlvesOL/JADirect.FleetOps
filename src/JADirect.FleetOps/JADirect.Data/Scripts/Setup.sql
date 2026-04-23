@@ -40,7 +40,7 @@ CREATE TABLE walkaround_checks(
                                   user_id       INT NOT NULL,
                                   vehicle_id    INT NOT NULL,
                                   odometer      INT NOT NULL CHECK (odometer >= 0),
-                                  checklist_json TEXT NOT NULL,
+                                  checklist_json MEDIUMTEXT NOT NULL,
                                   has_defect    TINYINT NOT NULL DEFAULT 0,
                                   defect_notes  TEXT,
                                   latitude      DECIMAL(10,8),
