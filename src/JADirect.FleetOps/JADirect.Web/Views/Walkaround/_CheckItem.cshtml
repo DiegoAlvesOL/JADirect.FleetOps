@@ -1,7 +1,10 @@
 @* ARQUIVO: _CheckItem.cshtml (Partial View)
    OBJETIVO: Componente reutilizável para cada item do checklist de walkaround.
    Suporta três estados: Good, Attention, Defect.
-   Estados Attention e Defect revelam campo de nota e botões de ação inline.
+   Estados Attention e Defect revelam campo de nota inline.
+   Botões de ação ocultados a pedido do cliente (Johnny).
+   O veículo nunca bloqueia independente do estado selecionado.
+   TODO: reativar botões de ação quando política de bloqueio for reconfigurada.
    Dados transmitidos via model binding indexado para List<ChecklistItemResult> no controller.
    RELAÇÃO: Filho de Create.cshtml. Recebe ChecklistItem + Index via Model. *@
 
@@ -30,7 +33,7 @@
            id="state_@(item.Id)"
            value="" />
 
-    @* Campo de ActionTaken — atualizado pelo JavaScript ao clicar nos botões de ação *@
+    @* Campo de ActionTaken — definido automaticamente como None pelo JavaScript *@
     <input type="hidden"
            name="@(fieldPrefix).ActionTaken"
            id="action_@(item.Id)"
@@ -85,7 +88,8 @@
 
     </div>
 
-    @* Área de nota e ação — visível apenas quando Attention ou Defect *@
+    @* Área de nota — visível apenas quando Attention ou Defect *@
+    @* Botões de ação ocultados. TODO: reativar com política de bloqueio futura. *@
     <div id="details_@(item.Id)"
          style="display: none; border-top: 1px solid #e9ecef; padding: 14px 16px;">
 
@@ -102,36 +106,7 @@
                   style="width: 100%; border: 1.5px solid #dee2e6;
                          border-radius: 10px; padding: 10px 12px;
                          font-size: 0.9rem; resize: none;
-                         margin-bottom: 12px; font-family: inherit;"></textarea>
+                         margin-bottom: 4px; font-family: inherit;"></textarea>
 
-        <label style="font-size: 0.8rem; font-weight: 600; color: #6c757d;
-                      margin-bottom: 8px; display: block;">
-            What action was taken?
-            <span style="color: #dc3545;"> *</span>
-        </label>
-
-        <div style="display: flex; gap: 8px;">
-
-            <button type="button"
-                    id="btn_resolved_@(item.Id)"
-                    onclick="selectAction('@item.Id', 'Resolved')"
-                    style="flex: 1; padding: 9px 6px; border-radius: 10px;
-                           border: 1.5px solid #dee2e6; background: #fff;
-                           font-size: 0.82rem; font-weight: 600; color: #adb5bd;
-                           cursor: pointer; transition: all 0.15s ease;">
-                Resolved in field
-            </button>
-
-            <button type="button"
-                    id="btn_garage_@(item.Id)"
-                    onclick="selectAction('@item.Id', 'RequiresGarage')"
-                    style="flex: 1; padding: 9px 6px; border-radius: 10px;
-                           border: 1.5px solid #dee2e6; background: #fff;
-                           font-size: 0.82rem; font-weight: 600; color: #adb5bd;
-                           cursor: pointer; transition: all 0.15s ease;">
-                Needs garage
-            </button>
-
-        </div>
     </div>
 </div>
