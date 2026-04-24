@@ -2,7 +2,9 @@
    OBJETIVO: Formulário principal do walkaround check.
    Itens carregados dinamicamente do banco via IEnumerable<ChecklistItem>.
    Agrupamento por Category feito via LINQ no Razor.
-   JavaScript centralizado controla estado visual e status do veículo em tempo real. *@
+   JavaScript centralizado controla estado visual e status do veículo em tempo real.
+   Botões de ação ocultados. Veículo nunca bloqueia independente do estado.
+   TODO: reativar lógica de bloqueio quando política for reconfigurada com o cliente. *@
 
 @using JADirect.Domain.Entities
 @model IEnumerable<ChecklistItem>
@@ -111,7 +113,6 @@
         <input type="hidden" name="Latitude" id="lat" />
         <input type="hidden" name="Longitude" id="lon" />
 
-        @* Agrupamento dinâmico por Category via LINQ — zero itens hardcoded *@
         @{
             var groupedItems = Model.GroupBy(i => i.Category).ToList();
             int globalIndex = 0;
@@ -184,7 +185,11 @@
 
     function selectState(itemId, state) {
         document.getElementById('state_' + itemId).value = state;
-        document.getElementById('action_' + itemId).value = state === 'Good' ? 'None' : '';
+
+        // ActionTaken definido automaticamente como None.
+        // Botões de ação ocultados. TODO: reativar com política de bloqueio futura.
+        document.getElementById('action_' + itemId).value = state === 'Good' ? 'None' : 'Resolved';
+
         document.getElementById('note_hidden_' + itemId).value = '';
 
         var card = document.getElementById('card_' + itemId);
@@ -192,7 +197,6 @@
         var noteInput = document.getElementById('note_input_' + itemId);
         var noteLabel = document.getElementById('note_label_' + itemId);
 
-        resetActionButtons(itemId);
         if (noteInput) { noteInput.value = ''; }
 
         if (state === 'Good') {
@@ -212,40 +216,8 @@
         refreshProgressAndStatus();
     }
 
-    function selectAction(itemId, action) {
-        document.getElementById('action_' + itemId).value = action;
-        resetActionButtons(itemId);
-
-        var btnResolved = document.getElementById('btn_resolved_' + itemId);
-        var btnGarage = document.getElementById('btn_garage_' + itemId);
-
-        if (action === 'Resolved') {
-            btnResolved.style.background = '#E1F5EE';
-            btnResolved.style.borderColor = '#0F6E56';
-            btnResolved.style.color = '#085041';
-        } else {
-            btnGarage.style.background = '#FAECE7';
-            btnGarage.style.borderColor = '#993C1D';
-            btnGarage.style.color = '#712B13';
-        }
-
-        refreshProgressAndStatus();
-    }
-
     function updateNote(itemId, value) {
         document.getElementById('note_hidden_' + itemId).value = value;
-    }
-
-    function resetActionButtons(itemId) {
-        var btnResolved = document.getElementById('btn_resolved_' + itemId);
-        var btnGarage = document.getElementById('btn_garage_' + itemId);
-        if (!btnResolved || !btnGarage) { return; }
-        btnResolved.style.background = '#fff';
-        btnResolved.style.borderColor = '#dee2e6';
-        btnResolved.style.color = '#adb5bd';
-        btnGarage.style.background = '#fff';
-        btnGarage.style.borderColor = '#dee2e6';
-        btnGarage.style.color = '#adb5bd';
     }
 
     function updateButtonStyles(itemId, state) {
@@ -279,23 +251,9 @@
     function refreshProgressAndStatus() {
         var allStateInputs = document.querySelectorAll('input[id^="state_"]');
         var checkedCount = 0;
-        var hasBlockingItem = false;
-        var hasAttentionItem = false;
-        var actionsNeeded = false;
 
         allStateInputs.forEach(function(input) {
-            var itemId = input.id.replace('state_', '');
-            var state  = input.value;
-            var actionEl = document.getElementById('action_' + itemId);
-            var action = actionEl ? actionEl.value : '';
-
-            if (state !== '') { checkedCount++; }
-
-            if (state === 'Attention' || state === 'Defect') {
-                if (action === '' || action === 'None') { actionsNeeded = true; }
-                if (action === 'RequiresGarage')        { hasBlockingItem = true; }
-                if (state === 'Attention' && action === 'Resolved') { hasAttentionItem = true; }
-            }
+            if (input.value !== '') { checkedCount++; }
         });
 
         updateSectionProgress();
@@ -317,44 +275,15 @@
             return;
         }
 
-        if (actionsNeeded) {
-            statusDot.style.background  = '#BA7517';
-            statusText.textContent      = 'Action required';
-            statusSub.textContent       = 'Select an action for each flagged item';
-            statusBar.style.background  = '#FAEEDA';
-            statusBar.style.borderColor = '#BA7517';
-            submitBtn.disabled          = true;
-            return;
-        }
-
-        if (hasBlockingItem) {
-            statusDot.style.background   = '#A32D2D';
-            statusText.textContent       = 'Vehicle will be blocked';
-            statusSub.textContent        = 'One or more issues require garage attention';
-            statusBar.style.background   = '#FCEBEB';
-            statusBar.style.borderColor  = '#A32D2D';
-            submitBtn.disabled           = false;
-            submitBtn.textContent        = 'Submit and block vehicle';
-            submitBtn.style.background   = '#A32D2D';
-        } else if (hasAttentionItem) {
-            statusDot.style.background   = '#BA7517';
-            statusText.textContent       = 'Vehicle operational — issues noted';
-            statusSub.textContent        = 'All issues resolved in field';
-            statusBar.style.background   = '#FAEEDA';
-            statusBar.style.borderColor  = '#BA7517';
-            submitBtn.disabled           = false;
-            submitBtn.textContent        = 'Submit Inspection';
-            submitBtn.style.background   = '#008080';
-        } else {
-            statusDot.style.background   = '#3B6D11';
-            statusText.textContent       = 'Vehicle clear — ready to operate';
-            statusSub.textContent        = 'All items passed';
-            statusBar.style.background   = '#EAF3DE';
-            statusBar.style.borderColor  = '#3B6D11';
-            submitBtn.disabled           = false;
-            submitBtn.textContent        = 'Submit Inspection';
-            submitBtn.style.background   = '#008080';
-        }
+        // Todos os itens respondidos — botão sempre verde, sempre Submit Inspection
+        statusDot.style.background   = '#3B6D11';
+        statusText.textContent       = 'Ready to submit';
+        statusSub.textContent        = 'All items checked';
+        statusBar.style.background   = '#EAF3DE';
+        statusBar.style.borderColor  = '#3B6D11';
+        submitBtn.disabled           = false;
+        submitBtn.textContent        = 'Submit Inspection';
+        submitBtn.style.background   = '#008080';
     }
 
     function updateSectionProgress() {
