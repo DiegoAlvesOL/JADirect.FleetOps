@@ -1,13 +1,16 @@
+@* Purpose    : Dashboard operacional do Manager — visão geral de performance, compliance e auditoria.
+   Consumed by: ManagerController.Index (GET)
+   Layer      : Web — Presentation *@
+
 @model JADirect.Domain.Models.PerformanceReportViewModel
 
 @{
-    ViewData["Title"] = "Operations Overview";
+ViewData["Title"] = "Operations Overview";
 }
 
 <style>
     .text-teal { color: #008080; }
-    
-    /* Botões Padrão J&A */
+
     .btn-teal {
         background-color: #008080;
         color: white;
@@ -31,7 +34,6 @@
         color: #721c24;
     }
 
-    /* KPI Cards */
     .kpi-card {
         border-radius: 20px;
         transition: all 0.3s ease;
@@ -44,7 +46,6 @@
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
     }
 
-    /* Estilo de Tabela Modern */
     .table-modern {
         border-collapse: separate;
         border-spacing: 0;
@@ -82,7 +83,6 @@
         border: 1px solid #e2e8f0;
     }
 
-    /* Estilo do botão de histórico dentro dos cards */
     .btn-history-link {
         text-decoration: none;
         transition: all 0.2s;
@@ -92,9 +92,22 @@
         transform: translateX(3px);
         filter: brightness(0.9);
     }
+
+    /* Rodapé informativo das tabelas */
+    .table-footer-info {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.75rem 1rem;
+        background-color: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+    }
 </style>
 
 <div class="container-fluid px-4 mt-4">
+
     @* HEADER SECTION *@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -164,27 +177,34 @@
                 <div class="overflow-x-auto">
                     <table class="table-modern">
                         <thead>
-                            <tr>
-                                <th class="text-left ps-4">Driver</th>
-                                <th class="text-left">Plate</th>
-                                <th class="text-center">Del.</th>
-                                <th class="text-center">Col.</th>
-                                <th class="text-center">Ret.</th>
-                            </tr>
+                        <tr>
+                            <th class="text-left ps-4">Driver</th>
+                            <th class="text-left">Plate</th>
+                            <th class="text-center">Del.</th>
+                            <th class="text-center">Col.</th>
+                            <th class="text-center">Ret.</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in Model.DriverRanking) {
-                                <tr>
-                                    <td class="ps-4 font-bold text-slate-700">@item.DriverName</td>
-                                    <td><span class="badge-plate">@item.RegistrationNo</span></td>
-                                    <td class="text-center font-semibold">@item.Deliveries</td>
-                                    <td class="text-center font-semibold">@item.Collections</td>
-                                    <td class="text-center font-bold @(item.Returns > 0 ? "text-orange-600" : "")">@item.Returns</td>
-                                </tr>
-                            }
+                        @foreach (var item in Model.DriverRanking.Take(5))
+                        {
+                        <tr>
+                            <td class="ps-4 font-bold text-slate-700">@item.DriverName</td>
+                            <td><span class="badge-plate">@item.RegistrationNo</span></td>
+                            <td class="text-center font-semibold">@item.Deliveries</td>
+                            <td class="text-center font-semibold">@item.Collections</td>
+                            <td class="text-center font-bold @(item.Returns > 0 ? "text-orange-600" : "")">@item.Returns</td>
+                        </tr>
+                        }
                         </tbody>
                     </table>
                 </div>
+                @if (Model.DriverRanking.Count > 5)
+                {
+                <div class="table-footer-info text-center">
+                    Showing top 5 of @Model.DriverRanking.Count drivers — use filters to refine results
+                </div>
+                }
             </section>
         </div>
 
@@ -201,26 +221,29 @@
                 </div>
                 <div class="flex-grow-1 overflow-y-auto" style="max-height: 350px;">
                     <div class="divide-y divide-slate-50">
-                        @if (!Model.PendingDailyLogs.Any()) {
-                            <div class="p-5 text-center text-slate-400 italic text-sm">No pending logs for today.</div>
+                        @if (!Model.PendingDailyLogs.Any())
+                        {
+                        <div class="p-5 text-center text-slate-400 italic text-sm">No pending logs for today.</div>
                         }
-                        @foreach (var log in Model.PendingDailyLogs) {
-                            <div class="p-3 d-flex justify-content-between align-items-center hover:bg-slate-50 transition-colors">
-                                <div>
-                                    <span class="font-bold text-slate-700 text-sm">@log.DriverName</span>
-                                    <div class="text-[9px] text-slate-400 font-bold uppercase">@log.Message</div>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-teal rounded-xl px-3 py-1 opacity-80 cursor-default" style="font-size: 9px;">REMIND</button>
+                        @foreach (var log in Model.PendingDailyLogs)
+                        {
+                        <div class="p-3 d-flex justify-content-between align-items-center hover:bg-slate-50 transition-colors">
+                            <div>
+                                <span class="font-bold text-slate-700 text-sm">@log.DriverName</span>
+                                <div class="text-[9px] text-slate-400 font-bold uppercase">@log.Message</div>
                             </div>
+                            <button type="button" class="btn btn-sm btn-teal rounded-xl px-3 py-1 opacity-80 cursor-default" style="font-size: 9px;">REMIND</button>
+                        </div>
                         }
                     </div>
                 </div>
-                @if (Model.PendingDailyLogs.Any()) {
-                    <div class="p-2 bg-slate-50 border-t border-slate-100">
-                        <button type="button" class="btn btn-link w-100 text-decoration-none text-slate-300 font-bold text-[10px] uppercase cursor-default border-0 shadow-none">
-                            <i class="ri-mail-send-line mr-1"></i> Remind all pending drivers (Soon)
-                        </button>
-                    </div>
+                @if (Model.PendingDailyLogs.Any())
+                {
+                <div class="p-2 bg-slate-50 border-t border-slate-100">
+                    <button type="button" class="btn btn-link w-100 text-decoration-none text-slate-300 font-bold text-[10px] uppercase cursor-default border-0 shadow-none">
+                        <i class="ri-mail-send-line mr-1"></i> Remind all pending drivers (Soon)
+                    </button>
+                </div>
                 }
             </div>
         </div>
@@ -228,67 +251,68 @@
 
     @* LINHA 2: SEGURANÇA *@
     <div class="row g-4 mb-5">
-        @* SAFETY ALERTS - BOTÃO VIEW HISTORY ADICIONADO *@
+
+        @* SAFETY ALERTS *@
         <div class="col-md-6">
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden h-100">
                 <div class="p-4 border-b border-slate-100 d-flex justify-content-between align-items-center bg-red-50/30">
                     <h6 class="m-0 font-bold text-red-500 text-uppercase text-[11px]"><i class="ri-shield-flash-line mr-2"></i>Safety Alerts (Critical)</h6>
                 </div>
                 <div class="p-2 overflow-y-auto" style="max-height: 350px;">
-                    @if (!Model.PendingWalkarounds.Any()) {
-                        <div class="p-4 text-slate-400 text-sm text-center italic">Vehicles fully inspected.</div>
+                    @if (!Model.PendingWalkarounds.Any())
+                    {
+                    <div class="p-4 text-slate-400 text-sm text-center italic">Vehicles fully inspected.</div>
                     }
-                    @foreach (var walk in Model.PendingWalkarounds) {
-                        <div class="m-2 p-3 bg-red-50 rounded-2xl border border-red-100">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="font-black text-slate-800 text-xs">@walk.RegistrationNo</span>
-                                    <div class="text-[10px] text-slate-500 mt-1">Driver: <strong>@walk.DriverName</strong></div>
-                                    
-                                    @* BOTÃO DE HISTÓRICO PARA O MANAGER *@
-                                    <div class="mt-2">
-                                        <a href="@Url.Action("History", "Walkaround", new { id = walk.VehicleId })" 
-                                           class="btn-history-link text-[9px] font-black text-red-600 border border-red-200 bg-white px-2 py-1 rounded-md uppercase">
-                                           <i class="ri-error-warning-line mr-1"></i>View Defects History
-                                        </a>
-                                    </div>
+                    @foreach (var walk in Model.PendingWalkarounds)
+                    {
+                    <div class="m-2 p-3 bg-red-50 rounded-2xl border border-red-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="font-black text-slate-800 text-xs">@walk.RegistrationNo</span>
+                                <div class="text-[10px] text-slate-500 mt-1">Driver: <strong>@walk.DriverName</strong></div>
+                                <div class="mt-2">
+                                    <a href="@Url.Action("History", "Walkaround", new { id = walk.VehicleId })"
+                                       class="btn-history-link text-[9px] font-black text-red-600 border border-red-200 bg-white px-2 py-1 rounded-md uppercase">
+                                        <i class="ri-error-warning-line mr-1"></i>View Defects History
+                                    </a>
                                 </div>
-                                <span class="text-[9px] font-bold text-red-600 bg-white border border-red-200 px-2 py-1 rounded-lg uppercase">
+                            </div>
+                            <span class="text-[9px] font-bold text-red-600 bg-white border border-red-200 px-2 py-1 rounded-lg uppercase">
                                     @walk.Message
                                 </span>
-                            </div>
                         </div>
+                    </div>
                     }
                 </div>
             </div>
         </div>
 
-        @* INSPECTION STATUS - BOTÃO CHECK TIMELINE ADICIONADO *@
+        @* INSPECTION STATUS *@
         <div class="col-md-6">
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden h-100">
                 <div class="p-4 border-b border-slate-100 d-flex justify-content-between align-items-center bg-blue-50/30">
                     <h6 class="m-0 font-bold text-blue-600 text-uppercase text-[11px]"><i class="ri-calendar-check-line mr-2"></i>Inspection Status (Upcoming)</h6>
                 </div>
                 <div class="p-3 overflow-y-auto" style="max-height: 350px;">
-                    @if (!Model.ExpiringInspections.Any()) {
-                        <div class="p-4 text-slate-400 text-sm text-center italic">All vehicles are up to date.</div>
+                    @if (!Model.ExpiringInspections.Any())
+                    {
+                    <div class="p-4 text-slate-400 text-sm text-center italic">All vehicles are up to date.</div>
                     }
-                    @foreach (var exp in Model.ExpiringInspections) {
-                        <div class="mb-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="badge-plate" style="background-color: #eff6ff;">@exp.RegistrationNo</span>
-                                <div class="text-[10px] text-blue-700 font-bold mt-1 uppercase">@exp.Message</div>
-                                
-                                @* BOTÃO DE HISTÓRICO PARA O MANAGER *@
-                                <div class="mt-2">
-                                    <a href="@Url.Action("History", "Walkaround", new { id = exp.VehicleId })" 
-                                       class="btn-history-link text-[9px] font-black text-blue-600 border border-blue-100 bg-white px-2 py-1 rounded-md uppercase">
-                                       <i class="ri-time-line mr-1"></i>Check Timeline
-                                    </a>
-                                </div>
+                    @foreach (var exp in Model.ExpiringInspections)
+                    {
+                    <div class="mb-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge-plate" style="background-color: #eff6ff;">@exp.RegistrationNo</span>
+                            <div class="text-[10px] text-blue-700 font-bold mt-1 uppercase">@exp.Message</div>
+                            <div class="mt-2">
+                                <a href="@Url.Action("History", "Walkaround", new { id = exp.VehicleId })"
+                                   class="btn-history-link text-[9px] font-black text-blue-600 border border-blue-100 bg-white px-2 py-1 rounded-md uppercase">
+                                    <i class="ri-time-line mr-1"></i>Check Timeline
+                                </a>
                             </div>
-                            <span class="text-[9px] font-bold text-slate-400">@exp.DriverName</span>
                         </div>
+                        <span class="text-[9px] font-bold text-slate-400">@exp.DriverName</span>
+                    </div>
                     }
                 </div>
             </div>
@@ -299,39 +323,44 @@
     <section class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-5">
         <div class="p-4 border-b border-slate-100 d-flex justify-content-between align-items-center bg-slate-50/50">
             <h5 class="m-0 font-bold text-slate-800">Log Detailing (Audit)</h5>
-            
-            <button type="button" 
+            <button type="button"
                     onclick="window.location.href='@Url.Action("ExportExcel", "Manager", new { start = Model.StartDate.ToString("yyyy-MM-dd"), end = Model.EndDate.ToString("yyyy-MM-dd"), driverName = Model.DriverSearch })'"
                     class="btn btn-sm btn-outline-success border-2 rounded-xl font-bold text-[10px] uppercase px-3">
                 <i class="ri-file-excel-2-line mr-1"></i> Export Excel
             </button>
-            
         </div>
         <div class="overflow-x-auto">
             <table class="table-modern">
                 <thead>
-                    <tr>
-                        <th class="text-left ps-4">Date</th>
-                        <th class="text-left">Driver</th>
-                        <th class="text-left">Plate</th>
-                        <th class="text-center">Deliveries</th>
-                        <th class="text-center">Collections</th>
-                        <th class="text-center">Returns</th>
-                    </tr>
+                <tr>
+                    <th class="text-left ps-4">Date</th>
+                    <th class="text-left">Driver</th>
+                    <th class="text-left">Plate</th>
+                    <th class="text-center">Deliveries</th>
+                    <th class="text-center">Collections</th>
+                    <th class="text-center">Returns</th>
+                </tr>
                 </thead>
                 <tbody>
-                    @foreach (var log in Model.DetailedLogs) {
-                        <tr>
-                            <td class="ps-4 font-bold text-slate-500 text-sm">@log.LogDate.ToString("dd/MM/yyyy")</td>
-                            <td class="font-bold text-slate-700">@log.DriverName</td>
-                            <td><span class="badge-plate">@log.RegistrationNo</span></td>
-                            <td class="text-center font-semibold">@log.Deliveries</td>
-                            <td class="text-center font-semibold">@log.Collections</td>
-                            <td class="text-center font-bold">@log.Returns</td>
-                        </tr>
-                    }
+                @foreach (var log in Model.DetailedLogs.Take(20))
+                {
+                <tr>
+                    <td class="ps-4 font-bold text-slate-500 text-sm">@log.LogDate.ToString("dd/MM/yyyy")</td>
+                    <td class="font-bold text-slate-700">@log.DriverName</td>
+                    <td><span class="badge-plate">@log.RegistrationNo</span></td>
+                    <td class="text-center font-semibold">@log.Deliveries</td>
+                    <td class="text-center font-semibold">@log.Collections</td>
+                    <td class="text-center font-bold">@log.Returns</td>
+                </tr>
+                }
                 </tbody>
             </table>
         </div>
+        @if (Model.DetailedLogs.Count > 20)
+        {
+        <div class="table-footer-info text-center">
+            Showing 20 of @Model.DetailedLogs.Count records — use Export Excel to access the full dataset
+        </div>
+        }
     </section>
 </div>
